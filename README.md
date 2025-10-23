@@ -1,4 +1,4 @@
-# Simple OCR
+# Simple OCR (for demonstration purposes)
 
 Two approaches to extract text from PDFs:
 
