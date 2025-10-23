@@ -13,7 +13,7 @@ python pymupdf_simple.py
 Smart extraction that uses PyMuPDF for text-only pages and sends pages with images to a Vision Language Model for OCR.
 
 ### Setup
-1. Copy `.env.example` to `.env`
+1. Create a `.env`
 2. Deploy a VLM on OICM
 3. Fill in your OICM credentials:
    ```
