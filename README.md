@@ -34,3 +34,14 @@ Both scripts save extracted text to `output.txt`.
 ```bash
 pip install pymupdf openai python-dotenv
 ```
+
+## Moving Forward
+
+Want to build a production system? Consider adding:
+- **Authentication** - Keycloak for user management and tracking
+- **Deduplication** - Hash-based file detection to avoid reprocessing
+- **Background Queue** - Redis for async processing at scale
+- **Object Storage** - MinIO for reliable file persistence
+- **Monitoring** - Prometheus + Grafana for metrics and alerts
+
+Each enhancement builds on this simple foundation while maintaining the core OCR functionality.
