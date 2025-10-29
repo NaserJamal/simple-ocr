@@ -1,5 +1,24 @@
-*.txt
+# Environment variables
 .env
 
+# Output directory
+output/
+!output/.gitkeep
+
+# Python
 __pycache__/
-*.DS_Store
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo

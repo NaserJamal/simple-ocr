@@ -4,7 +4,7 @@ import base64
 from openai import OpenAI
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv("../../.env")
 
 # Initialize OpenAI client with custom endpoint
 client = OpenAI(
@@ -12,7 +12,7 @@ client = OpenAI(
     base_url=os.getenv("OCR_MODEL_BASE_URL")
 )
 
-doc = pymupdf.open("PDF/1-page-text-img.pdf")
+doc = pymupdf.open("../../PDF/1-page-text-img.pdf")
 output = []
 
 for i, page in enumerate(doc, 1):
@@ -48,4 +48,4 @@ for i, page in enumerate(doc, 1):
         print(f"Page {i}: No images - Using PyMuPDF text ({len(text)} chars)")
         output.append(text)
 
-open("output.txt", "w").write("\n".join(output))
+open("../../output/output.txt", "w").write("\n".join(output))
