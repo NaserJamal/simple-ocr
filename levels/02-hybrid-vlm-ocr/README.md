@@ -161,7 +161,7 @@ Page 2: No images - Using PyMuPDF text (1247 chars)
 Page 3: Found 1 image(s) - Sending to VLM
 ```
 
-The extracted text will be saved to `../../output/output.txt`.
+The extracted text will be saved to `output/output.txt` in the current level directory.
 
 ---
 

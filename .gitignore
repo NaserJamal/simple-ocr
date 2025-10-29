@@ -1,9 +1,9 @@
 # Environment variables
 .env
 
-# Output directory
-output/
-!output/.gitkeep
+# Output directories (in any level)
+**/output/
+!**/output/.gitkeep
 
 # Python
 __pycache__/

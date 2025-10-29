@@ -48,4 +48,4 @@ for i, page in enumerate(doc, 1):
         print(f"Page {i}: No images - Using PyMuPDF text ({len(text)} chars)")
         output.append(text)
 
-open("../../output/output.txt", "w").write("\n".join(output))
+open("output/output.txt", "w").write("\n".join(output))

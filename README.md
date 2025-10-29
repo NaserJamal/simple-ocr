@@ -78,7 +78,7 @@ python extract.py
 
 3. **Check the output**
 ```bash
-cat ../../output/output.txt
+cat output/output.txt
 ```
 
 4. **Read the level's README** to understand what happened
@@ -95,16 +95,17 @@ simple-ocr/
 ├── .env.example                       # API configuration template
 ├── PDF/                               # Sample PDF files
 │   └── 1-page-text-img.pdf
-├── output/                            # Extracted text output (gitignored)
 └── levels/                            # Tutorial progression
     ├── 01-basic-text-extraction/      # PyMuPDF fundamentals
     │   ├── README.md
     │   ├── extract.py
-    │   └── requirements.txt
+    │   ├── requirements.txt
+    │   └── output/                    # Level 01 output (gitignored)
     └── 02-hybrid-vlm-ocr/             # VLM integration
         ├── README.md
         ├── extract.py
-        └── requirements.txt
+        ├── requirements.txt
+        └── output/                    # Level 02 output (gitignored)
 ```
 
 ---
@@ -218,8 +219,8 @@ pip install -r requirements.txt
 - Ensure you have API credits
 
 **Output file not found:**
-- The `output/` directory is created automatically
-- Check `../../output/output.txt` relative to the level
+- Each level has its own `output/` directory that's created automatically
+- Check `output/output.txt` within the level directory
 
 ---
 

@@ -37,7 +37,7 @@ doc = pymupdf.open("../../PDF/1-page-text-img.pdf")
 text = "\n".join(page.get_text() for page in doc)
 
 # Save to output file
-open("../../output/output.txt", "w").write(text)
+open("output/output.txt", "w").write(text)
 ```
 
 **Step-by-step breakdown:**
@@ -81,7 +81,7 @@ python extract.py
 # No console output - check output/output.txt for results
 ```
 
-The extracted text will be saved to `../../output/output.txt`.
+The extracted text will be saved to `output/output.txt` in the current level directory.
 
 ---
 
