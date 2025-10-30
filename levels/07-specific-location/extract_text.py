@@ -15,6 +15,7 @@ from section_detector import SectionDetector
 from text_extractor import TextExtractor
 from visualizer import SectionVisualizer
 from config import OUTPUT_DIR
+import interactive_menu as menu
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 log = logging.getLogger(__name__)
@@ -227,57 +228,46 @@ class LayoutTextExtractor:
         }
 
 
-def display_sections_menu(cached_data: list) -> dict:
-    """Display cached sections and let user choose which to extract"""
-    print("\n" + "="*80)
-    print("AVAILABLE SECTIONS")
-    print("="*80)
+def run_interactive_mode(pdf_path: str, output_dir: str, cache_path: str):
+    """Run interactive mode with user prompts"""
+    menu.display_welcome_banner(os.path.basename(pdf_path))
 
-    all_sections = []
-    for page_data in cached_data:
-        page_num = page_data['page']
-        for section in page_data['sections']:
-            idx = section.get('index', -1)
-            section_type = section.get('section_type', 'unknown')
-            text_preview = section.get('text', '')[:50]
-            all_sections.append({
-                'page': page_num,
-                'index': idx,
-                'section_type': section_type,
-                'text_preview': text_preview,
-                'section_data': section
-            })
+    has_cache = os.path.exists(cache_path)
+    mode_choice = menu.prompt_mode_selection(has_cache)
 
-    # Display sections
-    for i, sec in enumerate(all_sections, 1):
-        print(f"\n[{i}] Page {sec['page'] + 1} - {sec['section_type'].replace('_', ' ').title()}")
-        if sec['text_preview']:
-            print(f"    Preview: {sec['text_preview']}...")
+    if mode_choice == 'existing':
+        # Use existing cached sections
+        cached_data = menu.load_cached_sections(cache_path)
+        if not cached_data:
+            print("Error: Could not load cached sections. Switching to new detection.")
+            mode_choice = 'new'
+        else:
+            selection = menu.display_sections_menu(cached_data)
+            if selection is None:
+                sys.exit(1)
 
-    print("\n" + "-"*80)
-    print("Enter section numbers to extract (comma-separated, e.g., '1,3,5')")
-    print("Or press Enter to extract all sections")
-    print("-"*80)
+            section_request = menu.prompt_extraction_context_for_cached()
+            extractor = LayoutTextExtractor(pdf_path, section_request=section_request)
+            section_indices = [s['index'] for s in selection['sections']]
 
-    user_input = input("Your choice: ").strip()
+            return extractor.extract_from_cached_section(section_indices)
 
-    if not user_input:
-        # Extract all
-        return {'mode': 'all', 'sections': all_sections}
+    # mode_choice == 'new' or fallback
+    section_request = menu.prompt_section_request_for_new()
+    if section_request:
+        log.info(f"User requested: '{section_request}'")
 
-    try:
-        selected_nums = [int(x.strip()) for x in user_input.split(',')]
-        selected_sections = []
-        for num in selected_nums:
-            if 1 <= num <= len(all_sections):
-                selected_sections.append(all_sections[num - 1])
-            else:
-                print(f"Warning: Section {num} is out of range, skipping...")
+    extractor = LayoutTextExtractor(pdf_path, section_request=section_request)
+    return extractor.process_document()
 
-        return {'mode': 'selected', 'sections': selected_sections}
-    except ValueError:
-        print("Invalid input. Please enter numbers separated by commas.")
-        return None
+
+def run_command_line_mode(pdf_path: str, section_request: str):
+    """Run command-line mode with provided section request"""
+    if section_request:
+        log.info(f"User requested: '{section_request}'")
+
+    extractor = LayoutTextExtractor(pdf_path, section_request=section_request)
+    return extractor.process_document()
 
 
 def main():
@@ -286,6 +276,7 @@ def main():
     pdf_path = sys.argv[1] if len(sys.argv) > 1 else DEFAULT_PDF
     section_request = sys.argv[2] if len(sys.argv) > 2 else None
 
+    # Resolve PDF path
     if not os.path.isabs(pdf_path):
         script_dir = os.path.dirname(os.path.abspath(__file__))
         pdf_path = os.path.join(script_dir, pdf_path)
@@ -294,128 +285,19 @@ def main():
         log.error(f"PDF file not found: {pdf_path}")
         sys.exit(1)
 
-    # Check for cached sections
+    # Setup paths
     output_dir = OUTPUT_DIR
     cache_path = os.path.join(output_dir, "sections.json")
-    has_cache = os.path.exists(cache_path)
 
-    # Interactive mode
+    # Run appropriate mode
     if section_request is None:
-        print("\n" + "="*80)
-        print("SPECIFIC LOCATION TEXT EXTRACTION")
-        print("="*80)
-        print(f"\nPDF: {os.path.basename(pdf_path)}")
-
-        mode_choice = None
-        if has_cache:
-            print("\n" + "-"*80)
-            print("Choose a mode:")
-            print("  [1] Use existing sections (from previous detection)")
-            print("  [2] Identify new sections (detect layout again)")
-            print("-"*80)
-            mode_input = input("Your choice (1 or 2): ").strip()
-
-            if mode_input == '1':
-                mode_choice = 'existing'
-            elif mode_input == '2':
-                mode_choice = 'new'
-            else:
-                print("Invalid choice. Defaulting to new section detection.")
-                mode_choice = 'new'
-        else:
-            mode_choice = 'new'
-
-        if mode_choice == 'existing':
-            # Load and display cached sections
-            with open(cache_path, 'r', encoding='utf-8') as f:
-                cached_data = json.load(f)
-
-            selection = display_sections_menu(cached_data)
-            if selection is None:
-                sys.exit(1)
-
-            # Ask for extraction context
-            print("\n" + "="*80)
-            print("What do you want to extract from these sections?")
-            print("Examples:")
-            print("  - 'extract the notes'")
-            print("  - 'find contact information'")
-            print("  - Press Enter to extract all text as-is")
-            print("-"*80)
-            section_request = input("Your request: ").strip() or None
-
-            if section_request:
-                print(f"\nExtracting: '{section_request}'")
-            print("="*80 + "\n")
-
-            # Extract from selected cached sections
-            extractor = LayoutTextExtractor(pdf_path, section_request=section_request)
-
-            if selection['mode'] == 'all':
-                section_indices = [s['index'] for s in selection['sections']]
-            else:
-                section_indices = [s['index'] for s in selection['sections']]
-
-            result = extractor.extract_from_cached_section(section_indices)
-
-        else:  # mode_choice == 'new'
-            print("\n" + "-"*80)
-            print("What section would you like to extract?")
-            print("Examples:")
-            print("  - 'extract the notes section'")
-            print("  - 'find the summary'")
-            print("  - 'get the contact information'")
-            print("  - Press Enter to detect and extract ALL sections")
-            print("-"*80)
-
-            user_input = input("Your request: ").strip()
-
-            if user_input:
-                section_request = user_input
-                print(f"\nExtracting: '{section_request}'")
-            else:
-                print("\nDetecting all sections (default mode)")
-            print("="*80 + "\n")
-
-            extractor = LayoutTextExtractor(pdf_path, section_request=section_request)
-            result = extractor.process_document()
-
+        result = run_interactive_mode(pdf_path, output_dir, cache_path)
     else:
-        # Command-line mode with section request provided
-        if section_request:
-            log.info(f"User requested: '{section_request}'")
+        result = run_command_line_mode(pdf_path, section_request)
 
-        extractor = LayoutTextExtractor(pdf_path, section_request=section_request)
-        result = extractor.process_document()
-
-    if result['success']:
-        s = result['summary']
-        print(f"\n{'='*80}")
-        print("LAYOUT-BASED TEXT EXTRACTION COMPLETE")
-        print(f"{'='*80}")
-
-        # num_pages only exists for full document processing
-        if 'num_pages' in result:
-            print(f"Pages processed: {result['num_pages']}")
-
-        print(f"Total sections extracted: {s['total_sections']}")
-        print(f"Total characters extracted: {s['total_characters_extracted']}")
-        print(f"Successful pages: {s['successful_pages']}")
-        print(f"Failed pages: {s['failed_pages']}")
-        print("\nSection types detected:")
-        for section_type, count in sorted(s['section_types'].items()):
-            print(f"  - {section_type}: {count}")
-        print(f"\nResults saved to: {output_dir}")
-        print(f"  - sections.json: Detailed section data with extracted text")
-        print(f"  - extracted_text.txt: Combined extracted text")
-
-        # Visualizations only for full document processing
-        if 'num_pages' in result:
-            print(f"  - page_N_sections.png: Visualizations")
-        print(f"{'='*80}")
-    else:
-        print(f"\nERROR: {result.get('error', 'Unknown error')}")
-        sys.exit(1)
+    # Display results
+    success = menu.display_results_summary(result, output_dir)
+    sys.exit(0 if success else 1)
 
 
 if __name__ == "__main__":
