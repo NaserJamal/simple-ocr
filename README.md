@@ -54,6 +54,58 @@ By completing these levels, you'll understand:
 
 ---
 
+### [Level 03: Smart Quality Detection](levels/03-smart-quality-detection/)
+**Learn:** Automated quality assessment with intelligent VLM fallback
+
+- Multi-heuristic text quality scoring
+- Self-correcting extraction pipeline
+- Configurable quality thresholds
+- Automatic detection of poor extractions
+
+**Time:** 25 minutes
+**Cost:** ~$0.01-0.05 per document (depends on quality issues)
+
+---
+
+### [Level 04: Element Detection](levels/04-element-detection/)
+**Learn:** Precise document element detection using VLMs
+
+- Identify 14+ element types (paragraphs, tables, headings, images)
+- Bounding box extraction for each element
+- Visual annotation of detected regions
+- Modular architecture for layout analysis
+
+**Time:** 30 minutes
+**Cost:** ~$0.02-0.05 per page
+
+---
+
+### [Level 05: Layout Detection](levels/05-layout-detection/)
+**Learn:** Section-based text extraction with parallel processing
+
+- High-level section detection (header, experience, skills, etc.)
+- Parallel text extraction from multiple sections
+- Structured JSON and plain text output
+- Efficient processing for document organization
+
+**Time:** 30 minutes
+**Cost:** ~$0.03-0.08 per page
+
+---
+
+### [Level 06: Template-Based Parsing](levels/06-template-based-parsing/)
+**Learn:** Structured data extraction using document templates
+
+- Create custom extraction templates
+- Extract structured JSON from specific document types
+- Support for ID cards, forms, invoices, and more
+- Extensible template system
+
+**Time:** 20 minutes
+**Cost:** ~$0.01-0.03 per document
+
+---
+
 ## Quick Start
 
 ### Prerequisites
@@ -100,12 +152,33 @@ simple-ocr/
     │   ├── README.md
     │   ├── extract.py
     │   ├── requirements.txt
-    │   └── output/                    # Level 01 output (gitignored)
-    └── 02-hybrid-vlm-ocr/             # VLM integration
+    │   └── output/
+    ├── 02-hybrid-vlm-ocr/             # VLM integration
+    │   ├── README.md
+    │   ├── extract.py
+    │   ├── requirements.txt
+    │   └── output/
+    ├── 03-smart-quality-detection/    # Quality assessment
+    │   ├── README.md
+    │   ├── extract.py
+    │   ├── requirements.txt
+    │   └── output/
+    ├── 04-element-detection/          # Element detection
+    │   ├── README.md
+    │   ├── extract_elements.py
+    │   ├── requirements.txt
+    │   └── output/
+    ├── 05-layout-detection/           # Section-based extraction
+    │   ├── README.md
+    │   ├── extract_text.py
+    │   ├── requirements.txt
+    │   └── output/
+    └── 06-template-based-parsing/     # Template parsing
         ├── README.md
         ├── extract.py
+        ├── templates/
         ├── requirements.txt
-        └── output/                    # Level 02 output (gitignored)
+        └── output/
 ```
 
 ---
