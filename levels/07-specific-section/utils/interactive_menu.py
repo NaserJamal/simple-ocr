@@ -2,7 +2,7 @@
 
 import json
 import os
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 
 def display_welcome_banner(pdf_name: str) -> None:
@@ -11,6 +11,42 @@ def display_welcome_banner(pdf_name: str) -> None:
     print("SPECIFIC LOCATION TEXT EXTRACTION")
     print("=" * 80)
     print(f"\nPDF: {pdf_name}")
+
+
+def load_all_previous_sections(output_dir: str, index: List[Dict]) -> List[Dict]:
+    """Load and combine all sections from all previous extractions.
+
+    Args:
+        output_dir: Base output directory
+        index: List of extraction metadata
+
+    Returns:
+        Combined list of all sections with extraction metadata
+    """
+    all_sections = []
+
+    for entry in index:
+        extraction_dir = os.path.join(output_dir, entry['extraction_dir'])
+        sections_path = os.path.join(extraction_dir, 'sections.json')
+
+        if os.path.exists(sections_path):
+            try:
+                with open(sections_path, 'r', encoding='utf-8') as f:
+                    cached_data = json.load(f)
+
+                # Add extraction metadata to each section
+                for page_data in cached_data:
+                    for section in page_data['sections']:
+                        all_sections.append({
+                            'page': page_data['page'],
+                            'section': section,
+                            'extraction_timestamp': entry['timestamp'][:19].replace('T', ' '),
+                            'extraction_request': entry.get('section_request') or 'Full document'
+                        })
+            except Exception as e:
+                print(f"Warning: Could not load sections from {entry['extraction_dir']}: {e}")
+
+    return all_sections
 
 
 def prompt_mode_selection(has_cache: bool) -> str:
@@ -39,39 +75,30 @@ def prompt_mode_selection(has_cache: bool) -> str:
         return 'new'
 
 
-def display_sections_menu(cached_data: List[Dict]) -> Optional[Dict]:
-    """Display cached sections and let user choose which to extract.
+def display_sections_menu(all_sections: List[Dict]) -> Optional[Dict]:
+    """Display all available sections and let user choose which to extract.
 
     Args:
-        cached_data: List of page data with sections
+        all_sections: List of section data from all extractions
 
     Returns:
         Dictionary with 'mode' and 'sections' keys, or None on error
     """
     print("\n" + "=" * 80)
-    print("AVAILABLE SECTIONS")
+    print("AVAILABLE SECTIONS (from all previous extractions)")
     print("=" * 80)
 
-    all_sections = []
-    for page_data in cached_data:
-        page_num = page_data['page']
-        for section in page_data['sections']:
-            idx = section.get('index', -1)
-            section_type = section.get('section_type', 'unknown')
-            text_preview = section.get('text', '')[:50]
-            all_sections.append({
-                'page': page_num,
-                'index': idx,
-                'section_type': section_type,
-                'text_preview': text_preview,
-                'section_data': section
-            })
-
     # Display sections
-    for i, sec in enumerate(all_sections, 1):
-        print(f"\n[{i}] Page {sec['page'] + 1} - {sec['section_type'].replace('_', ' ').title()}")
-        if sec['text_preview']:
-            print(f"    Preview: {sec['text_preview']}...")
+    for i, item in enumerate(all_sections, 1):
+        section = item['section']
+        section_type = section.get('section_type', 'unknown')
+        text_preview = section.get('text', '')[:50]
+        timestamp = item['extraction_timestamp']
+
+        print(f"\n[{i}] {section_type.replace('_', ' ').title()} - Page {item['page'] + 1}")
+        print(f"    From: {timestamp}")
+        if text_preview:
+            print(f"    Preview: {text_preview}...")
 
     print("\n" + "-" * 80)
     print("Enter section numbers to extract (comma-separated, e.g., '1,3,5')")

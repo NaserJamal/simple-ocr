@@ -5,12 +5,15 @@ import json
 import logging
 import os
 import sys
+import uuid
+from datetime import datetime
 from typing import Dict, List, Optional
 
 import pymupdf
 from PIL import Image
 
 from utils.config import OUTPUT_DIR
+from utils.extraction_manager import ExtractionManager
 from utils.image_processor import ImageProcessor
 from utils.section_detector import SectionDetector
 from utils.text_extractor import TextExtractor
@@ -34,6 +37,7 @@ class LayoutTextExtractor:
         output_dir: str = OUTPUT_DIR,
         max_workers: int = 5,
         section_request: Optional[str] = None,
+        extraction_id: Optional[str] = None,
     ) -> None:
         """Initialize extractor with PDF path and output directory.
 
@@ -42,15 +46,24 @@ class LayoutTextExtractor:
             output_dir: Directory for output files
             max_workers: Number of parallel workers for text extraction
             section_request: User's natural language description of section to extract
+            extraction_id: Optional UUID for this extraction (auto-generated if None)
         """
         self.pdf_path = pdf_path
         self.output_dir = output_dir
         self.section_request = section_request
+
+        # Initialize extraction manager
+        extraction_id = extraction_id or str(uuid.uuid4())
+        timestamp = datetime.now().isoformat()
+        self.manager = ExtractionManager(output_dir, extraction_id, timestamp)
+
+        # Core processors
         self.processor = ImageProcessor()
         self.detector = SectionDetector(section_request=section_request)
         self.text_extractor = TextExtractor(max_workers=max_workers, section_request=section_request)
         self.visualizer = SectionVisualizer()
-        os.makedirs(self.output_dir, exist_ok=True)
+
+        log.info(f"Extraction ID: {self.manager.extraction_id[:8]}")
 
     def process_document(self) -> Dict:
         """Process entire PDF document and extract text."""
@@ -86,14 +99,18 @@ class LayoutTextExtractor:
 
             doc.close()
 
-            self._save_json_results(all_results)
-            self._save_text_results(all_text_parts)
+            # Save results and update index
+            self.manager.save_json_results(all_results)
+            self.manager.save_text_results(all_text_parts)
+            self.manager.update_extraction_index(all_results, self.pdf_path, self.section_request)
 
-            summary = self._generate_summary(all_results)
+            summary = self.manager._generate_summary(all_results)
             log.info(f"Processing complete: {summary}")
 
             return {
                 "success": True,
+                "extraction_id": self.manager.extraction_id,
+                "extraction_dir": self.manager.extraction_dir,
                 "num_pages": num_pages,
                 "results": all_results,
                 "summary": summary,
@@ -143,35 +160,19 @@ class LayoutTextExtractor:
         self, page_image: Image.Image, sections: List[Dict], page_num: int
     ) -> None:
         """Create and save visualization for a page."""
-        output_path = os.path.join(self.output_dir, f"page_{page_num + 1}_sections.png")
+        output_path = os.path.join(self.manager.extraction_dir, f"page_{page_num + 1}_sections.png")
         self.visualizer.save_visualization(
             page_image, sections, output_path, show_labels=True, show_fill=False
         )
         log.info(f"Saved visualization: {output_path}")
 
-    def _save_json_results(self, results: List[Dict]) -> None:
-        """Save all results to JSON file."""
-        output_path = os.path.join(self.output_dir, "sections.json")
-        with open(output_path, 'w', encoding='utf-8') as f:
-            json.dump(results, f, indent=2, ensure_ascii=False)
-        log.info(f"Saved JSON results to {output_path}")
-
-    def _load_cached_sections(self) -> Optional[List[Dict]]:
-        """Load previously detected sections from cache file."""
-        cache_path = os.path.join(self.output_dir, "sections.json")
-        if not os.path.exists(cache_path):
-            return None
-
-        try:
-            with open(cache_path, 'r', encoding='utf-8') as f:
-                return json.load(f)
-        except Exception as e:
-            log.warning(f"Failed to load cached sections: {e}")
-            return None
-
     def extract_from_cached_section(self, section_indices: List[int]) -> Dict:
-        """Re-extract text from specific cached sections with new user prompt."""
-        cached_data = self._load_cached_sections()
+        """Re-extract text from specific cached sections with new user prompt.
+
+        Note: This does NOT add to the extraction index since we're not detecting
+        new sections, just re-processing existing ones.
+        """
+        cached_data = ExtractionManager.load_latest_cached_sections(self.output_dir)
         if not cached_data:
             return {"success": False, "error": "No cached sections found"}
 
@@ -206,8 +207,8 @@ class LayoutTextExtractor:
 
             doc.close()
 
-            # Save results
-            self._save_json_results(results)
+            # Save results (but don't update index - these aren't new sections)
+            self.manager.save_json_results(results)
             text_parts = []
             for page_result in results:
                 page_text = f"\n{'='*80}\nPAGE {page_result['page'] + 1}\n{'='*80}\n\n"
@@ -216,80 +217,81 @@ class LayoutTextExtractor:
                     if text:
                         page_text += f"[{section.get('section_type', 'unknown').upper()}]\n{text}\n\n"
                 text_parts.append(page_text)
-            self._save_text_results(text_parts)
+            self.manager.save_text_results(text_parts)
 
-            summary = self._generate_summary(results)
-            return {"success": True, "results": results, "summary": summary}
+            summary = self.manager._generate_summary(results)
+            return {
+                "success": True,
+                "extraction_id": self.manager.extraction_id,
+                "extraction_dir": self.manager.extraction_dir,
+                "results": results,
+                "summary": summary,
+                "is_reextraction": True  # Flag to indicate this was a re-extraction
+            }
 
         except Exception as e:
             log.error(f"Failed to extract from cached sections: {e}")
             return {"success": False, "error": str(e)}
 
-    def _save_text_results(self, text_parts: List[str]) -> None:
-        """Save extracted text to .txt file."""
-        output_path = os.path.join(self.output_dir, "extracted_text.txt")
-        with open(output_path, 'w', encoding='utf-8') as f:
-            f.write('\n'.join(text_parts))
-        log.info(f"Saved extracted text to {output_path}")
 
-    def _generate_summary(self, results: List[Dict]) -> Dict:
-        """Generate summary statistics."""
-        section_types: Dict[str, int] = {}
-        total_chars = 0
-
-        for result in results:
-            for section in result.get('sections', []):
-                section_type = section.get('section_type', 'unknown')
-                section_types[section_type] = section_types.get(section_type, 0) + 1
-                total_chars += len(section.get('text', ''))
-
-        return {
-            "total_sections": sum(r.get('num_sections', 0) for r in results),
-            "successful_pages": sum(1 for r in results if 'error' not in r),
-            "failed_pages": sum(1 for r in results if 'error' in r),
-            "section_types": section_types,
-            "total_characters_extracted": total_chars,
-        }
-
-
-def run_interactive_mode(pdf_path: str, output_dir: str, cache_path: str) -> Dict:
+def run_interactive_mode(pdf_path: str, output_dir: str, index_path: str) -> Dict:
     """Run interactive mode with user prompts."""
     menu.display_welcome_banner(os.path.basename(pdf_path))
 
-    has_cache = os.path.exists(cache_path)
-    mode_choice = menu.prompt_mode_selection(has_cache)
+    # Check if there's extraction history
+    has_history = os.path.exists(index_path)
+    use_existing = False
 
-    if mode_choice == 'existing':
-        cached_data = menu.load_cached_sections(cache_path)
-        if not cached_data:
-            print("Error: Could not load cached sections. Switching to new detection.")
-            mode_choice = 'new'
+    if has_history:
+        try:
+            with open(index_path, 'r', encoding='utf-8') as f:
+                index = json.load(f)
+                if index:
+                    mode_choice = menu.prompt_mode_selection(True)
+                    use_existing = (mode_choice == 'existing')
+                else:
+                    has_history = False
+        except Exception as e:
+            log.warning(f"Failed to load extraction index: {e}")
+            has_history = False
+
+    # If user wants to use existing sections
+    if use_existing:
+        with open(index_path, 'r', encoding='utf-8') as f:
+            index = json.load(f)
+
+        all_sections = menu.load_all_previous_sections(output_dir, index)
+
+        if not all_sections:
+            print("Error: Could not load any previous sections. Starting new extraction.")
         else:
-            selection = menu.display_sections_menu(cached_data)
+            selection = menu.display_sections_menu(all_sections)
             if selection is None:
                 sys.exit(1)
 
             section_request = menu.prompt_extraction_context_for_cached()
-            extractor = LayoutTextExtractor(pdf_path, section_request=section_request)
-            section_indices = [s['index'] for s in selection['sections']]
+            extractor = LayoutTextExtractor(pdf_path, output_dir=output_dir, section_request=section_request)
+
+            # Extract indices from the nested structure
+            section_indices = [item['section']['index'] for item in selection['sections']]
 
             return extractor.extract_from_cached_section(section_indices)
 
-    # mode_choice == 'new' or fallback
+    # New extraction
     section_request = menu.prompt_section_request_for_new()
     if section_request:
         log.info(f"User requested: '{section_request}'")
 
-    extractor = LayoutTextExtractor(pdf_path, section_request=section_request)
+    extractor = LayoutTextExtractor(pdf_path, output_dir=output_dir, section_request=section_request)
     return extractor.process_document()
 
 
-def run_command_line_mode(pdf_path: str, section_request: Optional[str]) -> Dict:
+def run_command_line_mode(pdf_path: str, output_dir: str, section_request: Optional[str]) -> Dict:
     """Run command-line mode with provided section request."""
     if section_request:
         log.info(f"User requested: '{section_request}'")
 
-    extractor = LayoutTextExtractor(pdf_path, section_request=section_request)
+    extractor = LayoutTextExtractor(pdf_path, output_dir=output_dir, section_request=section_request)
     return extractor.process_document()
 
 
@@ -310,16 +312,18 @@ def main() -> None:
 
     # Setup paths
     output_dir = OUTPUT_DIR
-    cache_path = os.path.join(output_dir, "sections.json")
+    os.makedirs(output_dir, exist_ok=True)
+    index_path = os.path.join(output_dir, "extraction_index.json")
 
     # Run appropriate mode
     if section_request is None:
-        result = run_interactive_mode(pdf_path, output_dir, cache_path)
+        result = run_interactive_mode(pdf_path, output_dir, index_path)
     else:
-        result = run_command_line_mode(pdf_path, section_request)
+        result = run_command_line_mode(pdf_path, output_dir, section_request)
 
     # Display results
-    success = menu.display_results_summary(result, output_dir)
+    display_dir = result.get('extraction_dir', output_dir)
+    success = menu.display_results_summary(result, display_dir)
     sys.exit(0 if success else 1)
 
 
