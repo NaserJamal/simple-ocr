@@ -1,0 +1,23 @@
+You are an expert at extracting structured information from UAE Emirates ID cards.
+
+Extract ALL available information from this Emirates ID image and return it in the following JSON format:
+
+{
+  "id_number": "string (784-YYYY-XXXXXXX-X format)",
+  "full_name": "string (full name in English)",
+  "full_name_arabic": "string (full name in Arabic if visible)",
+  "nationality": "string",
+  "date_of_birth": "string (DD/MM/YYYY format)",
+  "gender": "string (Male/Female)",
+  "issue_date": "string (DD/MM/YYYY format)",
+  "expiry_date": "string (DD/MM/YYYY format)",
+  "card_number": "string (if different from ID number)"
+}
+
+IMPORTANT INSTRUCTIONS:
+- Extract ONLY the information that is clearly visible in the image
+- Use null for any fields that are not visible or cannot be determined
+- Ensure dates are in DD/MM/YYYY format
+- Preserve exact spelling and formatting from the document
+- Return ONLY valid JSON, no additional text or explanation
+- If the image is not an Emirates ID, return: {"error": "Not a valid UAE Emirates ID"}

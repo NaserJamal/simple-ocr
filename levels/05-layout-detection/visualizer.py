@@ -1,19 +1,19 @@
 """
-Visualization module for element detection results
-Creates annotated images showing detected element regions
+Visualization module for section detection results
+Creates annotated images showing detected layout sections
 """
 
 import logging
 from typing import List, Dict
 from PIL import Image, ImageDraw, ImageFont
 
-from config import ELEMENT_COLORS, VIZ_LINE_WIDTH, VIZ_FONT_SIZE, VIZ_ALPHA
+from config import SECTION_COLORS, VIZ_LINE_WIDTH, VIZ_FONT_SIZE, VIZ_ALPHA
 
 log = logging.getLogger(__name__)
 
 
-class ElementVisualizer:
-    """Visualizes detected element regions on document images"""
+class SectionVisualizer:
+    """Visualizes detected layout sections on document images"""
 
     def __init__(self, line_width: int = VIZ_LINE_WIDTH, font_size: int = VIZ_FONT_SIZE, alpha: float = VIZ_ALPHA):
         self.line_width = line_width
@@ -35,30 +35,30 @@ class ElementVisualizer:
                 log.warning("Could not load TrueType font, using default")
                 return ImageFont.load_default()
 
-    def visualize_elements(self, image: Image.Image, elements: List[Dict], show_labels: bool = True, show_fill: bool = False) -> Image.Image:
-        """Draw element regions on image"""
+    def visualize_sections(self, image: Image.Image, sections: List[Dict], show_labels: bool = True, show_fill: bool = False) -> Image.Image:
+        """Draw section regions on image"""
         annotated = image.copy()
         draw = ImageDraw.Draw(annotated, 'RGBA' if show_fill else 'RGB')
 
-        log.info(f"Visualizing {len(elements)} element regions")
+        log.info(f"Visualizing {len(sections)} layout sections")
 
-        for idx, element in enumerate(elements):
+        for idx, section in enumerate(sections):
             try:
-                self._draw_element(draw, element, idx, show_labels, show_fill)
+                self._draw_section(draw, section, idx, show_labels, show_fill)
             except Exception as e:
-                log.warning(f"Failed to draw element {idx}: {e}")
+                log.warning(f"Failed to draw section {idx}: {e}")
 
         return annotated
 
-    def _draw_element(self, draw: ImageDraw.ImageDraw, element: Dict, idx: int, show_labels: bool, show_fill: bool):
-        """Draw a single element region"""
-        rect = element.get('rect')
+    def _draw_section(self, draw: ImageDraw.ImageDraw, section: Dict, idx: int, show_labels: bool, show_fill: bool):
+        """Draw a single section region"""
+        rect = section.get('rect')
         if not rect or len(rect) != 4:
             return
 
         x0, y0, x1, y1 = [float(v) for v in rect]
-        element_type = element.get('layout_type', 'default')
-        color = ELEMENT_COLORS.get(element_type, ELEMENT_COLORS['default'])
+        section_type = section.get('section_type', 'default')
+        color = SECTION_COLORS.get(section_type, SECTION_COLORS['default'])
 
         if show_fill:
             draw.rectangle([x0, y0, x1, y1], fill=color + (int(255 * self.alpha),), outline=None)
@@ -66,7 +66,7 @@ class ElementVisualizer:
         draw.rectangle([x0, y0, x1, y1], outline=color, width=self.line_width)
 
         if show_labels:
-            self._draw_label(draw, f"{idx}: {element_type}", x0, y0, color)
+            self._draw_label(draw, f"{idx}: {section_type}", x0, y0, color)
 
     def _draw_label(self, draw: ImageDraw.ImageDraw, label: str, x: float, y: float, color: tuple):
         """Draw a text label with background"""
@@ -87,10 +87,10 @@ class ElementVisualizer:
         )
         draw.text((label_x, label_y), label, fill=color, font=self.font)
 
-    def save_visualization(self, image: Image.Image, elements: List[Dict], output_path: str, show_labels: bool = True, show_fill: bool = False):
+    def save_visualization(self, image: Image.Image, sections: List[Dict], output_path: str, show_labels: bool = True, show_fill: bool = False):
         """Create and save visualization to file"""
         try:
-            annotated = self.visualize_elements(image, elements, show_labels, show_fill)
+            annotated = self.visualize_sections(image, sections, show_labels, show_fill)
             annotated.save(output_path, "PNG")
             log.info(f"Saved visualization to {output_path}")
         except Exception as e:
