@@ -100,20 +100,9 @@ levels/06-template-based-parsing/
 
 ---
 
-## Setup
-
-### Configure API credentials
-Ensure your `.env` file exists at the project root with:
-
-```env
-OCR_MODEL_API_KEY=sk-your-actual-api-key-here
-OCR_MODEL_BASE_URL=https://api.openai.com/v1
-OCR_MODEL_NAME=gpt-4o-mini
-```
-
----
-
 ## Running the Parser
+
+**Note:** Ensure you've configured your `.env` file with API credentials (see main README).
 
 ```bash
 python main.py

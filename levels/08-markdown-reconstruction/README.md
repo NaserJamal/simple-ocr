@@ -133,14 +133,7 @@ All Sections + Context → VLM Reconstruction → Cohesive Markdown
 
 ## Usage
 
-### Prerequisites
-
-Set up environment variables in `../../.env`:
-```env
-OCR_MODEL_API_KEY=your_api_key
-OCR_MODEL_BASE_URL=your_base_url
-OCR_MODEL_NAME=your_model_name
-```
+**Note:** Ensure you've configured your `.env` file with API credentials (see main README).
 
 ### Running the System
 

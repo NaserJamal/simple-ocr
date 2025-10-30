@@ -116,32 +116,9 @@ Sends the page image to a vision model with a simple prompt: "Extract all text f
 
 ---
 
-## Setup
-
-### Configure API credentials
-Copy the `.env.example` from the root directory and fill in your credentials:
-
-```bash
-# From the project root
-cp .env.example .env
-```
-
-Edit `.env`:
-```env
-OCR_MODEL_API_KEY=sk-your-actual-api-key-here
-OCR_MODEL_BASE_URL=https://api.openai.com/v1
-OCR_MODEL_NAME=gpt-4o-mini
-```
-
-**Where to get an API key:**
-1. Sign up at [OpenAI Platform](https://platform.openai.com/)
-2. Navigate to [API Keys](https://platform.openai.com/api-keys)
-3. Create a new secret key
-4. Copy it to your `.env` file
-
----
-
 ## Running the Example
+
+**Note:** Ensure you've configured your `.env` file with API credentials (see main README).
 
 ```bash
 # Make sure you're in the level directory

@@ -217,12 +217,10 @@ cp .env.example .env
 
 2. Add your API credentials to `.env`:
 ```env
-OCR_MODEL_API_KEY=sk-your-api-key-here
-OCR_MODEL_BASE_URL=https://api.openai.com/v1
-OCR_MODEL_NAME=gpt-4o-mini
+OCR_MODEL_API_KEY=your-api-key-here
+OCR_MODEL_BASE_URL=https://api.your-provider.com/v1
+OCR_MODEL_NAME=your-model-name
 ```
-
-3. Get an API key from [OpenAI Platform](https://platform.openai.com/api-keys)
 
 The `.env` file is gitignored and shared across all levels.
 
