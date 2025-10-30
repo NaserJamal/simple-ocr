@@ -5,7 +5,7 @@ from typing import Dict, List
 
 from PIL import Image, ImageDraw, ImageFont
 
-from .config import SECTION_COLORS, VIZ_ALPHA, VIZ_FONT_SIZE, VIZ_LINE_WIDTH
+from src.infrastructure.config import SECTION_COLORS, VIZ_ALPHA, VIZ_FONT_SIZE, VIZ_LINE_WIDTH
 
 log = logging.getLogger(__name__)
 

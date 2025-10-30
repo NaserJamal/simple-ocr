@@ -8,7 +8,7 @@ from typing import Dict, List, Optional
 from dotenv import load_dotenv
 from openai import OpenAI
 
-from .config import API_MAX_TOKENS, API_TEMPERATURE, PROMPT_FILE, TARGET_SIZE
+from src.infrastructure.config import API_MAX_TOKENS, API_TEMPERATURE, PROMPT_FILE, TARGET_SIZE
 
 log = logging.getLogger(__name__)
 

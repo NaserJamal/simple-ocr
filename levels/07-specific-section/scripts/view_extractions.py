@@ -5,7 +5,7 @@ import json
 import os
 import sys
 
-OUTPUT_DIR = "output"
+from src.infrastructure.config import OUTPUT_DIR
 
 
 def load_index():
