@@ -230,3 +230,7 @@ logging.basicConfig(level=logging.DEBUG)
 - Based on hybrid OCR approach from `levels/02-hybrid-vlm-ocr/`
 - Uses PyMuPDF for PDF processing: https://pymupdf.readthedocs.io/
 - Uses PIL/Pillow for image manipulation: https://pillow.readthedocs.io/
+
+---
+
+👈 Back to [Level 03: Smart Quality Detection](../03-smart-quality-detection/README.md) | 👉 Continue to [Level 05: Layout Detection](../05-layout-detection/README.md)

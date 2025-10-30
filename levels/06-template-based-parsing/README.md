@@ -332,4 +332,4 @@ You've built a production-ready template-based extraction system! Consider explo
 
 ---
 
-👆 Back to [Main README](../../README.md)
+👈 Back to [Level 05: Layout Detection](../05-layout-detection/README.md) | 👉 Continue to [Level 08: Markdown Reconstruction](../08-markdown-reconstruction/README.md)

@@ -388,3 +388,7 @@ if result['success']:
 ---
 
 **Ready to try it?** Run `python main.py` and check `output/reconstructed.md` to see your PDF transformed into clean, editable markdown!
+
+---
+
+👈 Back to [Level 06: Template-Based Parsing](../06-template-based-parsing/README.md) | 👆 Back to [Main README](../../README.md)

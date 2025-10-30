@@ -427,4 +427,4 @@ You've built a production-ready, self-correcting OCR pipeline! Future levels cou
 - Level 05: Multi-language document processing
 - Level 06: Table detection and parsing
 
-👈 Back to [Level 02: Hybrid VLM OCR](../02-hybrid-vlm-ocr/README.md) | 👆 Back to [Main README](../../README.md)
+👈 Back to [Level 02: Hybrid VLM OCR](../02-hybrid-vlm-ocr/README.md) | 👉 Continue to [Level 04: Element Detection](../04-element-detection/README.md)

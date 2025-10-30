@@ -309,3 +309,7 @@ logging.basicConfig(level=logging.DEBUG)
 - Uses PyMuPDF for PDF processing: https://pymupdf.readthedocs.io/
 - Uses PIL/Pillow for image manipulation: https://pillow.readthedocs.io/
 - Uses ThreadPoolExecutor for parallel processing: https://docs.python.org/3/library/concurrent.futures.html
+
+---
+
+👈 Back to [Level 04: Element Detection](../04-element-detection/README.md) | 👉 Continue to [Level 06: Template-Based Parsing](../06-template-based-parsing/README.md)

@@ -233,4 +233,4 @@ You've completed the core OCR fundamentals! Future levels could explore:
 - Level 04: Multi-page document processing pipelines
 - Level 05: Custom VLM fine-tuning for domain-specific OCR
 
-👈 Back to [Level 01: Basic Text Extraction](../01-basic-text-extraction/README.md) | 👆 Back to [Main README](../../README.md)
+👈 Back to [Level 01: Basic Text Extraction](../01-basic-text-extraction/README.md) | 👉 Continue to [Level 03: Smart Quality Detection](../03-smart-quality-detection/README.md)
