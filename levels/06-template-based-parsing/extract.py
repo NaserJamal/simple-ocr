@@ -9,7 +9,6 @@ from config import API_TEMPERATURE
 
 load_dotenv("../../.env")
 
-# Available templates
 TEMPLATES = {
     "eid": {
         "name": "UAE Emirates ID",
@@ -18,18 +17,16 @@ TEMPLATES = {
 }
 
 
-def load_template_prompt(template_key):
+def load_template_prompt(template_key: str) -> str:
     """Load the system prompt for a given template."""
-    template = TEMPLATES.get(template_key)
-    if not template:
+    if template_key not in TEMPLATES:
         raise ValueError(f"Template '{template_key}' not found")
 
-    prompt_path = Path(__file__).parent / template["prompt_file"]
-    with open(prompt_path, 'r', encoding='utf-8') as f:
-        return f.read()
+    prompt_path = Path(__file__).parent / TEMPLATES[template_key]["prompt_file"]
+    return prompt_path.read_text(encoding='utf-8')
 
 
-def select_template():
+def select_template() -> str:
     """Prompt user to select a template."""
     print("\nAvailable Templates:")
     print("-" * 40)
@@ -41,43 +38,33 @@ def select_template():
     print("-" * 40)
 
     while True:
-        try:
-            choice = input("\nSelect a template (enter number or key): ").strip()
+        choice = input("\nSelect a template (enter number or key): ").strip()
 
-            # Try by number
-            if choice.isdigit():
-                idx = int(choice) - 1
-                if 0 <= idx < len(template_list):
-                    return template_list[idx][0]
+        # Try selection by number
+        if choice.isdigit():
+            idx = int(choice) - 1
+            if 0 <= idx < len(template_list):
+                return template_list[idx][0]
 
-            # Try by key
-            if choice in TEMPLATES:
-                return choice
+        # Try selection by key
+        if choice in TEMPLATES:
+            return choice
 
-            print(f"Invalid selection. Please choose 1-{len(template_list)} or a valid key.")
-        except (ValueError, KeyError):
-            print("Invalid input. Please try again.")
+        print(f"Invalid selection. Please choose 1-{len(template_list)} or a valid key.")
 
 
-
-
-def extract_with_vlm(file_path, template_key):
-    """Extract structured data from an image/PDF using VLM with the specified template."""
-    # Initialize OpenAI client
+def extract_with_vlm(file_path: str, template_key: str) -> str:
+    """Extract structured data from an image/PDF using VLM."""
     client = OpenAI(
         api_key=os.getenv("OCR_MODEL_API_KEY"),
         base_url=os.getenv("OCR_MODEL_BASE_URL")
     )
 
-    # Load template prompt
     system_prompt = load_template_prompt(template_key)
 
-    # Process file with proper resizing
     print(f"\nProcessing document with template: {TEMPLATES[template_key]['name']}...")
-    processor = ImageProcessor()
-    img_b64 = processor.process_file(file_path)
+    img_b64 = ImageProcessor().process_file(file_path)
 
-    # Make API request
     response = client.chat.completions.create(
         model=os.getenv("OCR_MODEL_NAME"),
         messages=[{
@@ -87,62 +74,50 @@ def extract_with_vlm(file_path, template_key):
                 {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{img_b64}"}}
             ]
         }],
-        temperature=API_TEMPERATURE,  # Use deterministic output for extraction
-        response_format={"type": "json_object"}  # Force JSON output
+        temperature=API_TEMPERATURE,
+        response_format={"type": "json_object"}
     )
 
     return response.choices[0].message.content
 
 
-def save_output(data, output_path):
+def save_output(data: str, output_path: Path) -> None:
     """Save extracted data to a JSON file."""
-    output_dir = Path(output_path).parent
-    output_dir.mkdir(parents=True, exist_ok=True)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    # Try to parse as JSON for pretty formatting
     try:
         json_data = json.loads(data)
-        with open(output_path, 'w', encoding='utf-8') as f:
-            json.dump(json_data, f, indent=2, ensure_ascii=False)
+        output_path.write_text(json.dumps(json_data, indent=2, ensure_ascii=False), encoding='utf-8')
         print(f"\nExtracted data saved to: {output_path}")
         print("\nExtracted Data:")
         print(json.dumps(json_data, indent=2, ensure_ascii=False))
     except json.JSONDecodeError:
-        # If not valid JSON, save as-is
-        with open(output_path, 'w', encoding='utf-8') as f:
-            f.write(data)
+        output_path.write_text(data, encoding='utf-8')
         print(f"\nResponse saved to: {output_path}")
-        print(f"\nWarning: Response is not valid JSON")
+        print("\nWarning: Response is not valid JSON")
 
 
-def main():
+def main() -> None:
     """Main execution flow."""
     print("=" * 40)
     print("Template-Based Document Parser")
     print("=" * 40)
 
-    # Select template
     template_key = select_template()
     print(f"\nSelected: {TEMPLATES[template_key]['name']}")
 
-    # Get file path
     file_path = input("\nEnter the path to the image/document (PDF, PNG, JPG): ").strip()
 
-    # Validate file path
-    if not os.path.exists(file_path):
+    if not Path(file_path).exists():
         print(f"Error: File not found: {file_path}")
         return
 
-    # Extract data
     try:
         result = extract_with_vlm(file_path, template_key)
-
-        # Save output
         output_path = Path(__file__).parent / "output" / f"extracted_{template_key}.json"
         save_output(result, output_path)
-
     except Exception as e:
-        print(f"\nError during extraction: {str(e)}")
+        print(f"\nError during extraction: {e}")
         raise
 
 
