@@ -33,14 +33,18 @@ This approach is ideal for documents like CVs, reports, forms, medical records, 
 The system follows a clean separation of concerns with the following modules:
 
 ```
-levels/05-layout-detection/
-├── config.py                      # Configuration constants
-├── image_processor.py             # PDF to image conversion with resizing
-├── section_detector.py            # VLM-based section detection
-├── text_extractor.py              # Parallel text extraction from sections
-├── visualizer.py                  # Visualization of detected sections
-├── extract_text.py                # Main orchestration script
-└── layout_detection_prompt.txt    # System prompt for VLM
+levels/07-specific-location/
+├── main.py                        # Main entry point
+├── utils/
+│   ├── __init__.py
+│   ├── config.py                  # Configuration constants
+│   ├── image_processor.py         # PDF to image conversion with resizing
+│   ├── section_detector.py        # VLM-based section detection
+│   ├── text_extractor.py          # Parallel text extraction from sections
+│   ├── visualizer.py              # Visualization of detected sections
+│   ├── interactive_menu.py        # Interactive user interface
+│   └── layout_detection_prompt.txt # System prompt for VLM
+└── output/                        # Generated output files
 ```
 
 ### Module Responsibilities
@@ -78,7 +82,7 @@ levels/05-layout-detection/
 - Draws bounding boxes with type-specific colors
 - Adds labels for each section
 
-#### `extract_text.py`
+#### `main.py`
 - Main entry point for the system
 - Orchestrates the complete pipeline:
   1. Load PDF
@@ -88,6 +92,13 @@ levels/05-layout-detection/
   5. Create visualizations
   6. Save results (JSON + TXT)
 - Generates summary statistics
+
+#### `interactive_menu.py`
+- Provides interactive user interface
+- Handles mode selection (new detection vs cached sections)
+- Displays section selection menu
+- Manages user prompts and input validation
+- Shows extraction results and summaries
 
 ## Section Types Detected
 
@@ -128,7 +139,7 @@ OCR_MODEL_NAME=your_model_name
 
 **Interactive Mode (Recommended):**
 ```bash
-python extract_text.py
+python main.py
 ```
 
 The system will guide you through an interactive workflow:
@@ -211,27 +222,27 @@ This workflow allows you to:
 
 Extract a specific section directly:
 ```bash
-python extract_text.py /path/to/document.pdf "extract the notes section"
+python main.py /path/to/document.pdf "extract the notes section"
 ```
 
 **More examples with specific requests:**
 ```bash
 # Extract summary section
-python extract_text.py document.pdf "find the summary"
+python main.py document.pdf "find the summary"
 
 # Extract contact information
-python extract_text.py document.pdf "get the contact information"
+python main.py document.pdf "get the contact information"
 
 # Extract comments or notes
-python extract_text.py document.pdf "extract the comments"
+python main.py document.pdf "extract the comments"
 
 # Extract patient details from medical form
-python extract_text.py medical_form.pdf "extract patient information"
+python main.py medical_form.pdf "extract patient information"
 ```
 
 **Specify a custom PDF (will prompt for section):**
 ```bash
-python extract_text.py /path/to/your/document.pdf
+python main.py /path/to/your/document.pdf
 ```
 
 ### Output
@@ -374,7 +385,7 @@ The system is intentionally broken into focused modules:
 Using the system programmatically:
 
 ```python
-from extract_text import LayoutTextExtractor
+from main import LayoutTextExtractor
 
 # Extract all sections
 extractor = LayoutTextExtractor("path/to/document.pdf", output_dir="results", max_workers=5)
@@ -418,7 +429,7 @@ extractor = LayoutTextExtractor("doc.pdf", max_workers=3)
 
 ### API Settings
 
-Modify in `config.py`:
+Modify in `utils/config.py`:
 
 ```python
 # Section detection settings

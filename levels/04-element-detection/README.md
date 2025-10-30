@@ -4,26 +4,34 @@ A robust, modular system for detecting document elements using Vision Language M
 
 ## Architecture
 
-The system follows a clean separation of concerns with the following modules:
+The system follows a clean separation of concerns with the following structure:
 
 ```
 levels/04-element-detection/
-├── config.py                      # Configuration constants
-├── image_processor.py             # PDF to image conversion with resizing
-├── element_detector.py            # VLM-based element detection
-├── visualizer.py                  # Visualization of detected elements
-├── extract_elements.py            # Main orchestration script
-└── element_detection_prompt.txt   # System prompt for VLM
+├── main.py                             # Clean entry point
+└── utils/                              # Core modules
+    ├── __init__.py                     # Package initialization
+    ├── config.py                       # Configuration constants
+    ├── image_processor.py              # PDF to image conversion
+    ├── element_detector.py             # VLM-based element detection
+    ├── visualizer.py                   # Visualization of detected elements
+    ├── extractor.py                    # Main orchestration logic
+    └── element_detection_prompt.txt    # System prompt for VLM
 ```
 
 ### Module Responsibilities
 
-#### `config.py`
+#### `main.py`
+- Clean, concise entry point for the system
+- Command-line argument handling
+- Result formatting and display
+
+#### `utils/config.py`
 - Central configuration for all constants
 - Color mappings for different element types
 - API settings and file paths
 
-#### `image_processor.py`
+#### `utils/image_processor.py`
 - Converts PDF pages to properly sized images
 - Implements resizing mechanism that improves VLM accuracy
 - Handles coordinate denormalization back to original space
@@ -32,20 +40,20 @@ levels/04-element-detection/
   - Resizes to fit target size while maintaining aspect ratio
   - Places on square canvas to prevent VLM preprocessing distortion
 
-#### `element_detector.py`
+#### `utils/element_detector.py`
 - Manages communication with OpenAI-compatible VLM API
 - Sends images for element analysis
 - Parses and validates VLM responses
 - Handles JSON extraction from markdown-formatted responses
 
-#### `visualizer.py`
+#### `utils/visualizer.py`
 - Creates annotated images showing detected elements
 - Draws bounding boxes with type-specific colors
 - Adds labels for each element
 
-#### `extract_elements.py`
-- Main entry point for the system
-- Orchestrates the complete pipeline:
+#### `utils/extractor.py`
+- Main orchestration logic
+- Coordinates the complete pipeline:
   1. Load PDF
   2. Process each page
   3. Detect elements
@@ -92,12 +100,12 @@ OCR_MODEL_NAME=your_model_name
 
 Basic usage (uses default PDF):
 ```bash
-python extract_elements.py
+python main.py
 ```
 
 Specify a custom PDF:
 ```bash
-python extract_elements.py /path/to/your/document.pdf
+python main.py /path/to/your/document.pdf
 ```
 
 ### Output
@@ -182,7 +190,7 @@ The system is intentionally broken into focused modules:
 Using the system programmatically:
 
 ```python
-from extract_elements import ElementExtractor
+from utils.extractor import ElementExtractor
 
 # Create extractor
 extractor = ElementExtractor("path/to/document.pdf", output_dir="results")

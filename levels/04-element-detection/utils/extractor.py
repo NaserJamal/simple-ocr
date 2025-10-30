@@ -8,16 +8,12 @@ import pymupdf
 from PIL import Image
 import io
 
-from image_processor import ImageProcessor
-from element_detector import ElementDetector
-from visualizer import ElementVisualizer
-from config import OUTPUT_DIR
+from .image_processor import ImageProcessor
+from .element_detector import ElementDetector
+from .visualizer import ElementVisualizer
+from .config import OUTPUT_DIR
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 log = logging.getLogger(__name__)
-
-# Default PDF to process (relative to this script's directory)
-DEFAULT_PDF = "../../PDF/cv-example.pdf"
 
 
 class ElementExtractor:
@@ -119,43 +115,3 @@ class ElementExtractor:
             "failed_pages": sum(1 for r in results if 'error' in r),
             "element_types": element_types
         }
-
-
-def main():
-    """Main entry point"""
-    # Get PDF path from command line or use default
-    pdf_path = sys.argv[1] if len(sys.argv) > 1 else DEFAULT_PDF
-
-    # Convert relative paths to absolute (relative to this script)
-    if not os.path.isabs(pdf_path):
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-        pdf_path = os.path.join(script_dir, pdf_path)
-
-    if not os.path.exists(pdf_path):
-        log.error(f"PDF file not found: {pdf_path}")
-        sys.exit(1)
-
-    extractor = ElementExtractor(pdf_path)
-    result = extractor.process_document()
-
-    if result['success']:
-        s = result['summary']
-        print(f"\n{'='*60}")
-        print("ELEMENT DETECTION COMPLETE")
-        print(f"{'='*60}")
-        print(f"Pages processed: {result['num_pages']}")
-        print(f"Total elements detected: {s['total_elements']}")
-        print(f"Successful pages: {s['successful_pages']}")
-        print(f"Failed pages: {s['failed_pages']}")
-        print("\nElement types detected:")
-        for element_type, count in sorted(s['element_types'].items()):
-            print(f"  - {element_type}: {count}")
-        print(f"\nResults saved to: {extractor.output_dir}")
-        print(f"{'='*60}")
-    else:
-        print(f"\nERROR: {result.get('error', 'Unknown error')}")
-        sys.exit(1)
-
-
-if __name__ == "__main__":
-    main()

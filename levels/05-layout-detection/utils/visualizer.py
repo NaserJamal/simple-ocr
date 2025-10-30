@@ -7,7 +7,7 @@ import logging
 from typing import List, Dict
 from PIL import Image, ImageDraw, ImageFont
 
-from config import SECTION_COLORS, VIZ_LINE_WIDTH, VIZ_FONT_SIZE, VIZ_ALPHA
+from .config import SECTION_COLORS, VIZ_LINE_WIDTH, VIZ_FONT_SIZE, VIZ_ALPHA
 
 log = logging.getLogger(__name__)
 

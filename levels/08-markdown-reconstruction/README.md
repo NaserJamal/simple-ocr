@@ -27,41 +27,59 @@ The result is a searchable, editable markdown document that preserves the origin
 
 ## Architecture
 
-The system consists of five specialized modules:
+The system consists of a clean main entry point and specialized utility modules:
 
 ```
 levels/08-markdown-reconstruction/
-├── config.py                       # Configuration constants
-├── image_processor.py              # PDF to image conversion
-├── section_detector.py             # VLM-based section detection
-├── text_extractor.py               # Parallel markdown extraction
-├── markdown_reconstructor.py       # Document reconstruction
-├── visualizer.py                   # Section visualization
-├── extract_markdown.py             # Main orchestration script
-└── layout_detection_prompt.txt     # Section detection prompt
+├── main.py                         # Main entry point
+├── utils/                          # Utility modules
+│   ├── __init__.py                 # Package initialization
+│   ├── config.py                   # Configuration constants
+│   ├── extractor.py                # Main extractor orchestration
+│   ├── image_processor.py          # PDF to image conversion
+│   ├── section_detector.py         # VLM-based section detection
+│   ├── text_extractor.py           # Parallel markdown extraction
+│   ├── markdown_reconstructor.py   # Document reconstruction
+│   ├── visualizer.py               # Section visualization
+│   └── layout_detection_prompt.txt # Section detection prompt
+├── output/                         # Generated output files
+└── requirements.txt
 ```
 
 ### Module Responsibilities
 
-#### `config.py`
+#### `main.py`
+- Clean entry point for the system
+- Handles command-line arguments and file paths
+- Orchestrates the extraction pipeline
+- Displays formatted results summary
+
+#### `utils/extractor.py`
+- Contains the main `MarkdownExtractor` class
+- Processes entire PDF documents
+- Manages page-by-page processing
+- Saves results (JSON, markdown, visualizations)
+- Generates summary statistics
+
+#### `utils/config.py`
 - Central configuration for all constants
 - API settings for detection, extraction, and reconstruction
 - Color mappings for visualization
 - Tunable parameters for quality vs cost trade-offs
 
-#### `image_processor.py`
+#### `utils/image_processor.py`
 - Converts PDF pages to properly sized images
 - Implements resizing for optimal VLM accuracy
 - Handles coordinate denormalization
 - Maintains aspect ratio and prevents distortion
 
-#### `section_detector.py`
+#### `utils/section_detector.py`
 - Detects high-level layout sections
 - Communicates with OpenAI-compatible VLM API
 - Parses and validates section boundaries
 - Focuses on major document regions (not individual elements)
 
-#### `text_extractor.py` (Modified for Markdown)
+#### `utils/text_extractor.py`
 - Extracts text from sections **as markdown**
 - Parallel processing using ThreadPoolExecutor
 - Prompts VLM to use appropriate markdown syntax:
@@ -70,23 +88,17 @@ levels/08-markdown-reconstruction/
   - Tables, lists, and code blocks
   - Preserves document hierarchy
 
-#### `markdown_reconstructor.py` (New)
+#### `utils/markdown_reconstructor.py`
 - Gathers all extracted markdown sections
 - Sends to VLM for intelligent reconstruction
 - Removes duplicates across sections
 - Creates natural flow and proper heading hierarchy
 - Cleans up artifacts and formatting issues
 
-#### `visualizer.py`
+#### `utils/visualizer.py`
 - Creates annotated images showing detected sections
 - Helps debug section detection
 - Useful for understanding the extraction process
-
-#### `extract_markdown.py`
-- Main entry point orchestrating the pipeline
-- Processes all pages sequentially
-- Manages parallel section extraction
-- Saves intermediate and final results
 
 ## How It Works
 
@@ -139,12 +151,12 @@ OCR_MODEL_NAME=your_model_name
 
 Basic usage (uses default PDF):
 ```bash
-python extract_markdown.py
+python main.py
 ```
 
 Specify a custom PDF:
 ```bash
-python extract_markdown.py /path/to/your/document.pdf
+python main.py /path/to/your/document.pdf
 ```
 
 ### Output
@@ -353,7 +365,7 @@ Possible improvements to this system:
 Using the system programmatically:
 
 ```python
-from extract_markdown import MarkdownExtractor
+from utils import MarkdownExtractor
 
 # Create extractor
 extractor = MarkdownExtractor(
@@ -387,4 +399,4 @@ if result['success']:
 
 ---
 
-**Ready to try it?** Run `python extract_markdown.py` and check `output/reconstructed.md` to see your PDF transformed into clean, editable markdown!
+**Ready to try it?** Run `python main.py` and check `output/reconstructed.md` to see your PDF transformed into clean, editable markdown!

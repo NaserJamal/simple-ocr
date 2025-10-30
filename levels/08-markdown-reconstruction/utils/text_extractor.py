@@ -1,5 +1,5 @@
 """
-Text extraction module using VLM
+Text extraction module using VLM with markdown output
 Handles parallel text extraction from cropped section images
 """
 
@@ -13,7 +13,7 @@ from PIL import Image
 from openai import OpenAI
 from dotenv import load_dotenv
 
-from config import OCR_MAX_TOKENS, OCR_TEMPERATURE
+from .config import OCR_MAX_TOKENS, OCR_TEMPERATURE
 
 log = logging.getLogger(__name__)
 
@@ -22,7 +22,7 @@ load_dotenv("../../.env")
 
 
 class TextExtractor:
-    """Extracts text from document section images using VLM OCR"""
+    """Extracts text from document section images using VLM OCR with markdown formatting"""
 
     def __init__(self, max_workers: int = 5):
         """Initialize text extractor with API client"""
@@ -81,16 +81,28 @@ class TextExtractor:
         return base64.b64encode(buffer.getvalue()).decode('utf-8')
 
     def _ocr_image(self, img_base64: str, section_type: str, page_num: int, section_idx: int) -> str:
-        """Perform OCR on a section image using VLM"""
+        """Perform OCR on a section image using VLM, returning markdown"""
         system_prompt = (
-            "You are an expert OCR system. Extract ALL text from the image exactly as it appears. "
-            "Preserve formatting, line breaks, and structure. "
-            "Return ONLY the extracted text with no additional commentary or markdown formatting."
+            "You are an expert OCR system that extracts text in markdown format. "
+            "Extract ALL text from the image and format it as markdown whenever possible. "
+            "Use appropriate markdown elements:\n"
+            "- # for main headings\n"
+            "- ## for subheadings\n"
+            "- **bold** for emphasized text\n"
+            "- *italic* for italicized text\n"
+            "- - or * for bullet points\n"
+            "- 1. 2. 3. for numbered lists\n"
+            "- | tables | for tabular data\n"
+            "- Preserve paragraph breaks with blank lines\n\n"
+            "Return ONLY the extracted text in markdown format with no additional commentary."
         )
 
         user_prompt = (
-            f"Extract all text from this {section_type.replace('_', ' ')} section. "
-            "Return the text exactly as it appears, maintaining the original structure and formatting."
+            f"Extract all text from this {section_type.replace('_', ' ')} section and format it as markdown. "
+            "Maintain the document's structure using appropriate markdown elements. "
+            "If the content is a table, format it as a markdown table. "
+            "If it contains headings, use markdown heading syntax. "
+            "Preserve the hierarchy and formatting of the original document."
         )
 
         response = self.client.chat.completions.create(

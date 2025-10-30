@@ -10,12 +10,12 @@ from typing import Dict, List, Optional
 import pymupdf
 from PIL import Image
 
-from config import OUTPUT_DIR
-from image_processor import ImageProcessor
-from section_detector import SectionDetector
-from text_extractor import TextExtractor
-from visualizer import SectionVisualizer
-import interactive_menu as menu
+from utils.config import OUTPUT_DIR
+from utils.image_processor import ImageProcessor
+from utils.section_detector import SectionDetector
+from utils.text_extractor import TextExtractor
+from utils.visualizer import SectionVisualizer
+import utils.interactive_menu as menu
 
 logging.basicConfig(
     level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'

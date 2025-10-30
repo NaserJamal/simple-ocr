@@ -1,16 +1,16 @@
 """
-Element detection module using VLM
-Handles communication with OpenAI-compatible API for element analysis
+Section detection module using VLM
+Handles communication with OpenAI-compatible API for layout section analysis
 """
 
 import json
 import os
 import logging
-from typing import List, Dict, Optional
+from typing import List, Dict
 from openai import OpenAI
 from dotenv import load_dotenv
 
-from config import API_MAX_TOKENS, API_TEMPERATURE, PROMPT_FILE, TARGET_SIZE
+from .config import API_MAX_TOKENS, API_TEMPERATURE, PROMPT_FILE, TARGET_SIZE
 
 log = logging.getLogger(__name__)
 
@@ -18,55 +18,40 @@ log = logging.getLogger(__name__)
 load_dotenv("../../.env")
 
 
-class ElementDetector:
-    """Detects document elements using Vision Language Model"""
+class SectionDetector:
+    """Detects document layout sections using Vision Language Model"""
 
     def __init__(self, prompt_file: str = PROMPT_FILE):
-        """Initialize element detector with API client"""
-        self.client = self._initialize_client()
-        self.system_prompt = self._load_prompt(prompt_file)
-        self.model_name = os.getenv("OCR_MODEL_NAME")
-
-        if not self.model_name:
-            raise ValueError("OCR_MODEL_NAME not found in environment variables")
-
-    def _initialize_client(self) -> OpenAI:
-        """Initialize OpenAI client with custom endpoint"""
+        """Initialize section detector with API client"""
         api_key = os.getenv("OCR_MODEL_API_KEY")
         base_url = os.getenv("OCR_MODEL_BASE_URL")
+        self.model_name = os.getenv("OCR_MODEL_NAME")
 
-        if not api_key or not base_url:
-            raise ValueError(
-                "OCR_MODEL_API_KEY and OCR_MODEL_BASE_URL must be set in .env file"
-            )
+        if not all([api_key, base_url, self.model_name]):
+            raise ValueError("OCR_MODEL_API_KEY, OCR_MODEL_BASE_URL, and OCR_MODEL_NAME must be set in .env")
 
-        return OpenAI(api_key=api_key, base_url=base_url)
+        self.client = OpenAI(api_key=api_key, base_url=base_url)
+        self.system_prompt = self._load_prompt(prompt_file)
 
     def _load_prompt(self, prompt_file: str) -> str:
         """Load system prompt from file"""
-        try:
-            prompt_path = os.path.join(os.path.dirname(__file__), prompt_file)
-            with open(prompt_path, 'r', encoding='utf-8') as f:
-                return f.read().strip()
-        except FileNotFoundError:
-            log.error(f"Prompt file not found: {prompt_file}")
-            raise
-        except Exception as e:
-            log.error(f"Failed to load prompt file: {e}")
-            raise
+        prompt_path = os.path.join(os.path.dirname(__file__), prompt_file)
+        with open(prompt_path, 'r', encoding='utf-8') as f:
+            return f.read().strip()
 
-    def detect_elements(self, img_base64: str, page_num: int) -> List[Dict]:
-        """Detect element regions in a document image"""
+    def detect_sections(self, img_base64: str, page_num: int) -> List[Dict]:
+        """Detect layout sections in a document image"""
         try:
             user_prompt = (
-                f"Please analyze this document image (page {page_num + 1}) and detect all element regions. "
+                f"Please analyze this document image (page {page_num + 1}) and identify the major layout sections. "
                 f"The image is {TARGET_SIZE}x{TARGET_SIZE} pixels (square canvas with document at top-left). "
+                "Focus on HIGH-LEVEL sections, not individual elements. "
                 "Return rectangles in IMAGE PIXELS with origin at the top-left as [x0, y0, x1, y1]. "
                 "Ensure x0 < x1 and y0 < y1 and keep values within the image bounds. "
                 "Return ONLY the JSON array with no markdown formatting."
             )
 
-            log.info(f"Sending page {page_num} to VLM for element detection")
+            log.info(f"Sending page {page_num} to VLM for section detection")
 
             response = self.client.chat.completions.create(
                 model=self.model_name,
@@ -93,79 +78,70 @@ class ElementDetector:
             response_text = response.choices[0].message.content or ""
             log.info(f"Received response for page {page_num}: {len(response_text)} chars")
 
-            elements = self._parse_response(response_text, page_num)
-            log.info(f"Detected {len(elements)} element regions on page {page_num}")
+            sections = self._parse_response(response_text, page_num)
+            log.info(f"Detected {len(sections)} layout sections on page {page_num}")
 
-            return elements
+            return sections
 
         except Exception as e:
-            log.error(f"Failed to detect elements for page {page_num}: {e}")
+            log.error(f"Failed to detect sections for page {page_num}: {e}")
             return []
 
     def _parse_response(self, response_text: str, page_num: int) -> List[Dict]:
-        """Parse VLM response into structured element data"""
+        """Parse VLM response into structured section data"""
         try:
             cleaned = response_text.strip()
 
             # Remove markdown code fences
             if "```" in cleaned:
-                start = cleaned.find("```")
-                end = cleaned.rfind("```")
-                if start != -1 and end != -1 and end > start:
+                start, end = cleaned.find("```"), cleaned.rfind("```")
+                if start != -1 and end > start:
                     inner = cleaned[start + 3:end]
-                    # Remove language identifier if present
                     cleaned = inner.split("\n", 1)[1].strip() if "\n" in inner else inner.strip()
 
             # Extract JSON array
             if not cleaned.startswith("["):
-                start = cleaned.find("[")
-                end = cleaned.rfind("]")
-                if start != -1 and end != -1 and end > start:
+                start, end = cleaned.find("["), cleaned.rfind("]")
+                if start != -1 and end > start:
                     cleaned = cleaned[start:end + 1]
 
-            elements = json.loads(cleaned)
-
-            if not isinstance(elements, list):
+            sections = json.loads(cleaned)
+            if not isinstance(sections, list):
                 log.error(f"Response is not a list for page {page_num}")
                 return []
 
-            return [element for element in elements if self._validate_element(element, page_num)]
+            return [s for s in sections if self._validate_section(s, page_num)]
 
         except json.JSONDecodeError as e:
             log.error(f"Failed to parse JSON for page {page_num}: {e}")
             log.debug(f"Response text: {response_text[:500]}")
             return []
-        except Exception as e:
-            log.error(f"Failed to parse response for page {page_num}: {e}")
-            return []
 
-    def _validate_element(self, element: Dict, page_num: int) -> bool:
-        """Validate element dictionary has required fields and valid values"""
+    def _validate_section(self, section: Dict, page_num: int) -> bool:
+        """Validate section dictionary has required fields and valid values"""
         try:
-            if not all(key in element for key in ['layout_type', 'rect']):
+            if not all(k in section for k in ['section_type', 'rect']):
                 return False
 
-            rect = element['rect']
+            rect = section['rect']
             if not isinstance(rect, list) or len(rect) != 4:
                 return False
 
             x0, y0, x1, y1 = [float(v) for v in rect]
-
             if x0 >= x1 or y0 >= y1:
                 return False
 
-            # Clamp to bounds
-            if x0 < 0 or y0 < 0 or x1 > TARGET_SIZE or y1 > TARGET_SIZE:
-                log.warning(f"Page {page_num}: Clamping out-of-bounds rect for {element['layout_type']}")
-                element['rect'] = [
+            # Clamp to bounds if needed
+            if any(v < 0 or v > TARGET_SIZE for v in [x0, y0, x1, y1]):
+                log.warning(f"Page {page_num}: Clamping out-of-bounds rect for {section['section_type']}")
+                section['rect'] = [
                     max(0, min(TARGET_SIZE, x0)),
                     max(0, min(TARGET_SIZE, y0)),
                     max(0, min(TARGET_SIZE, x1)),
                     max(0, min(TARGET_SIZE, y1))
                 ]
-
             return True
 
         except (TypeError, ValueError, KeyError) as e:
-            log.warning(f"Element validation error: {e}")
+            log.warning(f"Section validation error: {e}")
             return False

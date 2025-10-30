@@ -1,27 +1,22 @@
 """
-PDF markdown reconstruction - detects sections, extracts text as markdown, and reconstructs
+Main extractor class for markdown reconstruction pipeline
 """
 
 import os
-import sys
 import json
 import logging
 import pymupdf
 from PIL import Image
 import io
 
-from image_processor import ImageProcessor
-from section_detector import SectionDetector
-from text_extractor import TextExtractor
-from markdown_reconstructor import MarkdownReconstructor
-from visualizer import SectionVisualizer
-from config import OUTPUT_DIR
+from .image_processor import ImageProcessor
+from .section_detector import SectionDetector
+from .text_extractor import TextExtractor
+from .markdown_reconstructor import MarkdownReconstructor
+from .visualizer import SectionVisualizer
+from .config import OUTPUT_DIR
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 log = logging.getLogger(__name__)
-
-# Default PDF to process (relative to this script's directory)
-DEFAULT_PDF = "../../PDF/1-page-text-img.pdf"
 
 
 class MarkdownExtractor:
@@ -153,45 +148,3 @@ class MarkdownExtractor:
             "section_types": section_types,
             "total_characters_extracted": total_chars
         }
-
-
-def main():
-    """Main entry point"""
-    pdf_path = sys.argv[1] if len(sys.argv) > 1 else DEFAULT_PDF
-
-    if not os.path.isabs(pdf_path):
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-        pdf_path = os.path.join(script_dir, pdf_path)
-
-    if not os.path.exists(pdf_path):
-        log.error(f"PDF file not found: {pdf_path}")
-        sys.exit(1)
-
-    extractor = MarkdownExtractor(pdf_path)
-    result = extractor.process_document()
-
-    if result['success']:
-        s = result['summary']
-        print(f"\n{'='*80}")
-        print("MARKDOWN RECONSTRUCTION COMPLETE")
-        print(f"{'='*80}")
-        print(f"Pages processed: {result['num_pages']}")
-        print(f"Total sections detected: {s['total_sections']}")
-        print(f"Total characters extracted: {s['total_characters_extracted']}")
-        print(f"Successful pages: {s['successful_pages']}")
-        print(f"Failed pages: {s['failed_pages']}")
-        print("\nSection types detected:")
-        for section_type, count in sorted(s['section_types'].items()):
-            print(f"  - {section_type}: {count}")
-        print(f"\nResults saved to: {extractor.output_dir}")
-        print(f"  - reconstructed.md: Final reconstructed markdown document")
-        print(f"  - sections.json: Detailed section data with extracted markdown")
-        print(f"  - page_N_sections.png: Visualizations")
-        print(f"{'='*80}")
-    else:
-        print(f"\nERROR: {result.get('error', 'Unknown error')}")
-        sys.exit(1)
-
-
-if __name__ == "__main__":
-    main()

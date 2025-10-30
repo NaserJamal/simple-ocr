@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 from openai import OpenAI
 from PIL import Image
 
-from config import OCR_MAX_TOKENS, OCR_TEMPERATURE
+from .config import OCR_MAX_TOKENS, OCR_TEMPERATURE
 
 log = logging.getLogger(__name__)
 

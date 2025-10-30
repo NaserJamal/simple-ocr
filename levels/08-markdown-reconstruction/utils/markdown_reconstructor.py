@@ -9,7 +9,7 @@ from typing import List, Dict
 from openai import OpenAI
 from dotenv import load_dotenv
 
-from config import RECONSTRUCTION_MAX_TOKENS, RECONSTRUCTION_TEMPERATURE
+from .config import RECONSTRUCTION_MAX_TOKENS, RECONSTRUCTION_TEMPERATURE
 
 log = logging.getLogger(__name__)
 

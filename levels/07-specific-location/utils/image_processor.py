@@ -8,7 +8,7 @@ from typing import Tuple
 import pymupdf
 from PIL import Image
 
-from config import TARGET_SIZE, RENDER_SCALE
+from .config import TARGET_SIZE, RENDER_SCALE
 
 log = logging.getLogger(__name__)
 

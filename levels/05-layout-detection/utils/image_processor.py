@@ -10,7 +10,7 @@ from PIL import Image
 from typing import Tuple
 import logging
 
-from config import TARGET_SIZE, RENDER_SCALE
+from .config import TARGET_SIZE, RENDER_SCALE
 
 log = logging.getLogger(__name__)
 

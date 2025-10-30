@@ -220,7 +220,7 @@ OCR_MODEL_NAME=gpt-4o-mini
 
 ```bash
 # Make sure you're in the level directory
-python extract.py
+python main.py
 ```
 
 **Expected output:**

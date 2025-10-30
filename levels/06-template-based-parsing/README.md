@@ -23,34 +23,40 @@ Instead of generic OCR, this level focuses on **structured data extraction** fro
 
 ```
 levels/06-template-based-parsing/
-├── extract.py              # Main parser script
+├── main.py                 # Clean entry point script
+├── utils/                  # Supporting modules
+│   ├── __init__.py        # Package initialization
+│   ├── config.py          # Configuration constants
+│   ├── extractor.py       # Template-based extraction logic
+│   └── image_processor.py # Image preprocessing
 ├── templates/              # Document type templates
-│   └── uae_emirates_id.txt # UAE Emirates ID template
+│   ├── uae_emirates_id.txt # UAE Emirates ID template
+│   └── passport.txt        # Passport template
 ├── output/                 # Extracted JSON files
 └── README.md
 ```
 
 ### Key Components
 
-1. **Template System** (`TEMPLATES` dict in extract.py:11)
-   - Defines available document types
-   - Maps template keys to prompt files
-   - Easily extensible for new document types
+1. **Main Script** (`main.py`)
+   - Clean, simple entry point
+   - Handles user interaction flow
+   - Delegates logic to utils modules
 
-2. **Template Prompts** (`templates/*.txt`)
-   - Instructs VLM on what to extract
-   - Defines the expected JSON schema
-   - Provides extraction guidelines
+2. **Template Extractor** (`utils/extractor.py`)
+   - `TEMPLATES` dict defines available document types
+   - `TemplateExtractor` class handles extraction logic
+   - Methods: `select_template()`, `extract()`, `save_output()`
 
-3. **Interactive Selection** (`select_template()` in extract.py:30)
-   - User chooses document type
-   - Supports selection by number or key
-   - Validates user input
+3. **Image Processor** (`utils/image_processor.py`)
+   - Converts PDFs and images to base64
+   - Resizes images for optimal VLM processing
+   - Handles multiple image formats
 
-4. **VLM Extraction** (`extract_with_vlm()` in extract.py:66)
-   - Sends image + template prompt to VLM
-   - Uses `temperature=0` for deterministic output
-   - Returns structured JSON
+4. **Configuration** (`utils/config.py`)
+   - Centralized settings for image processing
+   - API temperature and model parameters
+   - Easy to modify without touching core logic
 
 ---
 
@@ -116,7 +122,7 @@ OCR_MODEL_NAME=gpt-4o-mini
 ## Running the Parser
 
 ```bash
-python extract.py
+python main.py
 ```
 
 ### Interactive Flow
@@ -179,7 +185,7 @@ IMPORTANT:
 
 ### Step 2: Register Template
 
-Add to `TEMPLATES` dict in `extract.py`:
+Add to `TEMPLATES` dict in `utils/extractor.py`:
 
 ```python
 TEMPLATES = {
@@ -219,23 +225,30 @@ That's it! The template is now available for selection.
 
 ## Code Highlights
 
-### Modular Functions
+### Clean Architecture
 
 ```python
-# Clean separation of concerns
-load_template_prompt()  # Template loading
-select_template()       # User interaction
-image_to_base64()       # Image processing
-extract_with_vlm()      # VLM extraction
-save_output()           # Result saving
+# main.py - Simple entry point
+main()  # Orchestrates the extraction flow
+
+# utils/extractor.py - Core extraction logic
+TemplateExtractor.select_template()   # User interaction
+TemplateExtractor.extract()           # VLM extraction
+TemplateExtractor.save_output()       # Result saving
+
+# utils/image_processor.py
+ImageProcessor.process_file()         # Image preprocessing
+
+# utils/config.py
+TARGET_SIZE, API_TEMPERATURE          # Configuration
 ```
 
 ### Error Handling
 
-- File existence validation (extract.py:133)
-- Template validation (extract.py:22)
-- JSON parsing with fallback (extract.py:104-116)
-- Graceful error messages (extract.py:145-147)
+- File existence validation (main.py:18)
+- Template validation (utils/extractor.py:39)
+- JSON parsing with fallback (utils/extractor.py:98)
+- Graceful error messages (main.py:27)
 
 ### Extensibility
 

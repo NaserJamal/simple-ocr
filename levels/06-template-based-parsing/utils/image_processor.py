@@ -9,7 +9,7 @@ import pymupdf
 from PIL import Image
 from pathlib import Path
 
-from config import TARGET_SIZE, RENDER_SCALE
+from .config import TARGET_SIZE, RENDER_SCALE
 
 
 class ImageProcessor:

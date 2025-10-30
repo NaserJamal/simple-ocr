@@ -1,5 +1,14 @@
 """
-PDF layout-based text extraction - detects sections and extracts text in parallel
+PDF Layout-Based Text Extraction
+
+This script processes PDF documents by:
+1. Detecting major layout sections (header, experience, education, skills, etc.)
+2. Extracting text from each section in parallel using Vision Language Models
+3. Saving results as JSON, plain text, and annotated visualizations
+
+Usage:
+    python main.py                          # Uses default PDF
+    python main.py /path/to/document.pdf    # Process specific PDF
 """
 
 import os
@@ -10,24 +19,34 @@ import pymupdf
 from PIL import Image
 import io
 
-from image_processor import ImageProcessor
-from section_detector import SectionDetector
-from text_extractor import TextExtractor
-from visualizer import SectionVisualizer
-from config import OUTPUT_DIR
+from utils.image_processor import ImageProcessor
+from utils.section_detector import SectionDetector
+from utils.text_extractor import TextExtractor
+from utils.visualizer import SectionVisualizer
+from utils.config import OUTPUT_DIR
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 log = logging.getLogger(__name__)
 
-# Default PDF to process (relative to this script's directory)
+# Default PDF path (relative to this script)
 DEFAULT_PDF = "../../PDF/1-page-text-img.pdf"
 
 
 class LayoutTextExtractor:
-    """Extracts text from PDF documents using layout-based section detection"""
+    """Main class for layout-based text extraction from PDFs"""
 
     def __init__(self, pdf_path: str, output_dir: str = OUTPUT_DIR, max_workers: int = 5):
-        """Initialize extractor with PDF path and output directory"""
+        """
+        Initialize the extractor
+
+        Args:
+            pdf_path: Path to the PDF document
+            output_dir: Directory for output files
+            max_workers: Number of parallel workers for text extraction
+        """
         self.pdf_path = pdf_path
         self.output_dir = output_dir
         self.processor = ImageProcessor()
@@ -37,7 +56,7 @@ class LayoutTextExtractor:
         os.makedirs(self.output_dir, exist_ok=True)
 
     def process_document(self) -> dict:
-        """Process entire PDF document and extract text"""
+        """Process the entire PDF document"""
         log.info(f"Processing PDF: {self.pdf_path}")
 
         try:
@@ -60,22 +79,30 @@ class LayoutTextExtractor:
                         for section in page_result['sections']:
                             text = section.get('text', '')
                             if text:
-                                page_text += f"[{section.get('section_type', 'unknown').upper()}]\n{text}\n\n"
+                                section_type = section.get('section_type', 'unknown').upper()
+                                page_text += f"[{section_type}]\n{text}\n\n"
                         all_text_parts.append(page_text)
 
                 except Exception as e:
                     log.error(f"Failed to process page {page_num}: {e}")
-                    all_results.append({"page": page_num, "error": str(e), "sections": []})
+                    all_results.append({
+                        "page": page_num,
+                        "error": str(e),
+                        "sections": []
+                    })
 
             doc.close()
 
-            self._save_json_results(all_results)
-            self._save_text_results(all_text_parts)
-
+            self._save_results(all_results, all_text_parts)
             summary = self._generate_summary(all_results)
             log.info(f"Processing complete: {summary}")
 
-            return {"success": True, "num_pages": num_pages, "results": all_results, "summary": summary}
+            return {
+                "success": True,
+                "num_pages": num_pages,
+                "results": all_results,
+                "summary": summary
+            }
 
         except Exception as e:
             log.error(f"Failed to process document: {e}")
@@ -83,14 +110,20 @@ class LayoutTextExtractor:
 
     def process_page(self, page: pymupdf.Page, page_num: int) -> dict:
         """Process a single PDF page"""
+        # Convert PDF page to image
         img_base64, orig_width, orig_height, scale_x, scale_y = self.processor.process_page(page)
+
+        # Detect layout sections
         sections = self.detector.detect_sections(img_base64, page_num)
 
         # Denormalize coordinates to original space
         denormalized_sections = [
-            {**section, 'rect': list(self.processor.denormalize_coordinates(
-                section['rect'], orig_width, orig_height, scale_x, scale_y
-            ))}
+            {
+                **section,
+                'rect': list(self.processor.denormalize_coordinates(
+                    section['rect'], orig_width, orig_height, scale_x, scale_y
+                ))
+            }
             for section in sections
         ]
 
@@ -103,6 +136,7 @@ class LayoutTextExtractor:
             page_image, denormalized_sections, page_num
         )
 
+        # Create visualization
         self._create_visualization(page_image, denormalized_sections, page_num)
 
         return {
@@ -115,22 +149,25 @@ class LayoutTextExtractor:
     def _create_visualization(self, page_image: Image.Image, sections: list, page_num: int):
         """Create and save visualization for a page"""
         output_path = os.path.join(self.output_dir, f"page_{page_num + 1}_sections.png")
-        self.visualizer.save_visualization(page_image, sections, output_path, show_labels=True, show_fill=False)
+        self.visualizer.save_visualization(
+            page_image, sections, output_path,
+            show_labels=True, show_fill=False
+        )
         log.info(f"Saved visualization: {output_path}")
 
-    def _save_json_results(self, results: list):
-        """Save all results to JSON file"""
-        output_path = os.path.join(self.output_dir, "sections.json")
-        with open(output_path, 'w', encoding='utf-8') as f:
+    def _save_results(self, results: list, text_parts: list):
+        """Save results to JSON and text files"""
+        # Save JSON
+        json_path = os.path.join(self.output_dir, "sections.json")
+        with open(json_path, 'w', encoding='utf-8') as f:
             json.dump(results, f, indent=2, ensure_ascii=False)
-        log.info(f"Saved JSON results to {output_path}")
+        log.info(f"Saved JSON results to {json_path}")
 
-    def _save_text_results(self, text_parts: list):
-        """Save extracted text to .txt file"""
-        output_path = os.path.join(self.output_dir, "extracted_text.txt")
-        with open(output_path, 'w', encoding='utf-8') as f:
+        # Save text
+        text_path = os.path.join(self.output_dir, "extracted_text.txt")
+        with open(text_path, 'w', encoding='utf-8') as f:
             f.write('\n'.join(text_parts))
-        log.info(f"Saved extracted text to {output_path}")
+        log.info(f"Saved extracted text to {text_path}")
 
     def _generate_summary(self, results: list) -> dict:
         """Generate summary statistics"""
@@ -154,19 +191,24 @@ class LayoutTextExtractor:
 
 def main():
     """Main entry point"""
+    # Get PDF path from command line or use default
     pdf_path = sys.argv[1] if len(sys.argv) > 1 else DEFAULT_PDF
 
+    # Convert to absolute path if relative
     if not os.path.isabs(pdf_path):
         script_dir = os.path.dirname(os.path.abspath(__file__))
         pdf_path = os.path.join(script_dir, pdf_path)
 
+    # Validate PDF exists
     if not os.path.exists(pdf_path):
         log.error(f"PDF file not found: {pdf_path}")
         sys.exit(1)
 
+    # Process document
     extractor = LayoutTextExtractor(pdf_path)
     result = extractor.process_document()
 
+    # Print results
     if result['success']:
         s = result['summary']
         print(f"\n{'='*80}")
