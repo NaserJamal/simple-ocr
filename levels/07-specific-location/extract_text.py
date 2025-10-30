@@ -21,7 +21,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(level
 log = logging.getLogger(__name__)
 
 # Default PDF to process (relative to this script's directory)
-DEFAULT_PDF = "../../PDF/form-field-example.pdf"
+DEFAULT_PDF = "../../PDF/form-field-example-2.pdf"
 
 
 class LayoutTextExtractor:
