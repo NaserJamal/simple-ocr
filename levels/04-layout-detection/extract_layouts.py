@@ -1,13 +1,9 @@
-"""
-Main script for PDF layout detection
-Processes PDF pages and generates layout visualizations
-"""
+"""PDF layout detection - processes PDF pages and generates layout visualizations"""
 
 import os
 import sys
 import json
 import logging
-from pathlib import Path
 import pymupdf
 from PIL import Image
 import io
@@ -17,41 +13,23 @@ from layout_detector import LayoutDetector
 from visualizer import LayoutVisualizer
 from config import OUTPUT_DIR
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 log = logging.getLogger(__name__)
 
 
 class LayoutExtractor:
-    """Main class for extracting layouts from PDF documents"""
+    """Extracts layouts from PDF documents"""
 
     def __init__(self, pdf_path: str, output_dir: str = OUTPUT_DIR):
-        """
-        Initialize layout extractor
-
-        Args:
-            pdf_path: Path to PDF file
-            output_dir: Directory for output files
-        """
         self.pdf_path = pdf_path
         self.output_dir = output_dir
         self.processor = ImageProcessor()
         self.detector = LayoutDetector()
         self.visualizer = LayoutVisualizer()
-
-        # Create output directory
         os.makedirs(self.output_dir, exist_ok=True)
 
     def process_document(self) -> dict:
-        """
-        Process entire PDF document and detect layouts
-
-        Returns:
-            Dictionary with processing results and statistics
-        """
+        """Process entire PDF document and detect layouts"""
         log.info(f"Processing PDF: {self.pdf_path}")
 
         try:
@@ -60,112 +38,57 @@ class LayoutExtractor:
             log.info(f"Document has {num_pages} pages")
 
             all_results = []
-
             for page_num, page in enumerate(doc):
                 log.info(f"Processing page {page_num + 1}/{num_pages}")
-
                 try:
-                    page_result = self.process_page(page, page_num)
-                    all_results.append(page_result)
+                    all_results.append(self.process_page(page, page_num))
                 except Exception as e:
                     log.error(f"Failed to process page {page_num}: {e}")
-                    all_results.append({
-                        "page": page_num,
-                        "error": str(e),
-                        "layouts": []
-                    })
+                    all_results.append({"page": page_num, "error": str(e), "layouts": []})
 
             doc.close()
-
-            # Save combined results
             self._save_results(all_results)
-
-            # Generate summary
             summary = self._generate_summary(all_results)
             log.info(f"Processing complete: {summary}")
 
-            return {
-                "success": True,
-                "num_pages": num_pages,
-                "results": all_results,
-                "summary": summary
-            }
+            return {"success": True, "num_pages": num_pages, "results": all_results, "summary": summary}
 
         except Exception as e:
             log.error(f"Failed to process document: {e}")
-            return {
-                "success": False,
-                "error": str(e)
-            }
+            return {"success": False, "error": str(e)}
 
     def process_page(self, page: pymupdf.Page, page_num: int) -> dict:
-        """
-        Process a single PDF page
-
-        Args:
-            page: PyMuPDF page object
-            page_num: Page number (0-indexed)
-
-        Returns:
-            Dictionary with page processing results
-        """
-        # Step 1: Convert page to image
+        """Process a single PDF page"""
         img_base64, orig_width, orig_height, scale_x, scale_y = self.processor.process_page(page)
-
-        # Step 2: Detect layouts
         layouts = self.detector.detect_layouts(img_base64, page_num)
 
-        # Step 3: Denormalize coordinates back to original pixel space
         denormalized_layouts = []
         for layout in layouts:
             try:
-                x0, y0, x1, y1 = self.processor.denormalize_coordinates(
-                    layout['rect'],
-                    orig_width,
-                    orig_height,
-                    scale_x,
-                    scale_y
-                )
+                x0, y0, x1, y1 = self.processor.denormalize_coordinates(layout['rect'], orig_width, orig_height, scale_x, scale_y)
                 denormalized_layout = layout.copy()
                 denormalized_layout['rect'] = [x0, y0, x1, y1]
                 denormalized_layouts.append(denormalized_layout)
             except Exception as e:
                 log.warning(f"Failed to denormalize layout: {e}")
-                continue
 
-        # Step 4: Create visualization
         self._create_visualization(page, denormalized_layouts, page_num)
 
         return {
             "page": page_num,
             "layouts": denormalized_layouts,
             "num_layouts": len(denormalized_layouts),
-            "image_dimensions": {
-                "width": orig_width,
-                "height": orig_height
-            }
+            "image_dimensions": {"width": orig_width, "height": orig_height}
         }
 
     def _create_visualization(self, page: pymupdf.Page, layouts: list, page_num: int):
         """Create and save visualization for a page"""
         try:
-            # Render page to PIL Image
             pix = page.get_pixmap(matrix=pymupdf.Matrix(1, 1), colorspace=pymupdf.csRGB)
-            img_bytes = pix.tobytes("png")
-            pil_img = Image.open(io.BytesIO(img_bytes)).convert("RGB")
-
-            # Create visualization
+            pil_img = Image.open(io.BytesIO(pix.tobytes("png"))).convert("RGB")
             output_path = os.path.join(self.output_dir, f"page_{page_num + 1}_layout.png")
-            self.visualizer.save_visualization(
-                pil_img,
-                layouts,
-                output_path,
-                show_labels=True,
-                show_fill=False
-            )
-
-            log.info(f"Saved visualization for page {page_num + 1}: {output_path}")
-
+            self.visualizer.save_visualization(pil_img, layouts, output_path, show_labels=True, show_fill=False)
+            log.info(f"Saved visualization: {output_path}")
         except Exception as e:
             log.error(f"Failed to create visualization for page {page_num}: {e}")
 
@@ -181,11 +104,6 @@ class LayoutExtractor:
 
     def _generate_summary(self, results: list) -> dict:
         """Generate summary statistics"""
-        total_layouts = sum(r.get('num_layouts', 0) for r in results)
-        successful_pages = sum(1 for r in results if 'error' not in r)
-        failed_pages = sum(1 for r in results if 'error' in r)
-
-        # Count by layout type
         layout_types = {}
         for result in results:
             for layout in result.get('layouts', []):
@@ -193,25 +111,16 @@ class LayoutExtractor:
                 layout_types[layout_type] = layout_types.get(layout_type, 0) + 1
 
         return {
-            "total_layouts": total_layouts,
-            "successful_pages": successful_pages,
-            "failed_pages": failed_pages,
+            "total_layouts": sum(r.get('num_layouts', 0) for r in results),
+            "successful_pages": sum(1 for r in results if 'error' not in r),
+            "failed_pages": sum(1 for r in results if 'error' in r),
             "layout_types": layout_types
         }
 
 
 def main():
     """Main entry point"""
-    # Default PDF path (relative to this script)
-    default_pdf = "../../PDF/cv-example.pdf"
-
-    # Allow PDF path as command line argument
-    if len(sys.argv) > 1:
-        pdf_path = sys.argv[1]
-    else:
-        pdf_path = default_pdf
-
-    # Convert to absolute path
+    pdf_path = sys.argv[1] if len(sys.argv) > 1 else "../../PDF/cv-example.pdf"
     script_dir = os.path.dirname(os.path.abspath(__file__))
     pdf_path = os.path.join(script_dir, pdf_path)
 
@@ -219,23 +128,23 @@ def main():
         log.error(f"PDF file not found: {pdf_path}")
         sys.exit(1)
 
-    # Create extractor and process
     extractor = LayoutExtractor(pdf_path)
     result = extractor.process_document()
 
     if result['success']:
-        print("\n" + "="*60)
+        s = result['summary']
+        print(f"\n{'='*60}")
         print("LAYOUT DETECTION COMPLETE")
-        print("="*60)
+        print(f"{'='*60}")
         print(f"Pages processed: {result['num_pages']}")
-        print(f"Total layouts detected: {result['summary']['total_layouts']}")
-        print(f"Successful pages: {result['summary']['successful_pages']}")
-        print(f"Failed pages: {result['summary']['failed_pages']}")
+        print(f"Total layouts detected: {s['total_layouts']}")
+        print(f"Successful pages: {s['successful_pages']}")
+        print(f"Failed pages: {s['failed_pages']}")
         print("\nLayout types detected:")
-        for layout_type, count in sorted(result['summary']['layout_types'].items()):
+        for layout_type, count in sorted(s['layout_types'].items()):
             print(f"  - {layout_type}: {count}")
         print(f"\nResults saved to: {extractor.output_dir}")
-        print("="*60)
+        print(f"{'='*60}")
     else:
         print(f"\nERROR: {result.get('error', 'Unknown error')}")
         sys.exit(1)

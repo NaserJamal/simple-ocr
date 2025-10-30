@@ -31,61 +31,40 @@ class ImageProcessor:
         """
         Convert PDF page to base64-encoded image with proper resizing
 
-        This method:
-        1. Renders the PDF page at 1:1 scale (72 DPI)
-        2. Resizes to fit within target_size while maintaining aspect ratio
-        3. Places on square white canvas to avoid VLM preprocessing distortion
-
         Args:
             page: PyMuPDF page object
 
         Returns:
-            Tuple of:
-                - base64 encoded PNG image string
-                - original image width (before padding)
-                - original image height (before padding)
-                - scale factor used for resizing (original -> resized)
-                - scale factor used for resizing (original -> resized)
+            Tuple of (base64_image, original_width, original_height, scale_x, scale_y)
         """
         try:
-            # Render page at 1:1 resolution (72 DPI)
-            # This gives us direct pixel-to-PDF-point mapping
             pix = page.get_pixmap(
                 matrix=pymupdf.Matrix(RENDER_SCALE, RENDER_SCALE),
                 colorspace=pymupdf.csRGB,
                 alpha=False
             )
 
-            # Store original dimensions
             original_width = float(pix.width)
             original_height = float(pix.height)
 
-            # Convert to PIL Image
             img_bytes = pix.tobytes("png")
             pil_img = Image.open(io.BytesIO(img_bytes)).convert("RGB")
 
-            # Calculate scale to fit within target size
             max_edge = max(pil_img.width, pil_img.height)
             scale = self.target_size / max_edge if max_edge > 0 else 1.0
 
-            # Resize image maintaining aspect ratio
             resized_width = int(round(pil_img.width * scale))
             resized_height = int(round(pil_img.height * scale))
             resized_img = pil_img.resize((resized_width, resized_height), Image.LANCZOS)
 
-            # Create square white canvas and place resized image at top-left
             canvas = Image.new("RGB", (self.target_size, self.target_size), (255, 255, 255))
             canvas.paste(resized_img, (0, 0))
 
-            # Encode to base64
             buffer = io.BytesIO()
             canvas.save(buffer, format="PNG")
             img_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
 
-            log.info(
-                f"Processed page: {original_width}x{original_height} -> "
-                f"{resized_width}x{resized_height} (scale={scale:.3f})"
-            )
+            log.info(f"Processed page: {int(original_width)}x{int(original_height)} -> {resized_width}x{resized_height} (scale={scale:.3f})")
 
             return img_base64, original_width, original_height, scale, scale
 
@@ -101,42 +80,22 @@ class ImageProcessor:
         scale_x: float,
         scale_y: float
     ) -> Tuple[float, float, float, float]:
-        """
-        Convert normalized/padded coordinates back to original image space
-
-        Args:
-            rect: Bounding box [x0, y0, x1, y1] in padded image coordinates
-            original_width: Original image width before padding
-            original_height: Original image height before padding
-            scale_x: Scale factor applied to width
-            scale_y: Scale factor applied to height
-
-        Returns:
-            Tuple of (x0, y0, x1, y1) in original image pixel coordinates
-        """
+        """Convert padded image coordinates back to original pixel space"""
         try:
-            x0_norm, y0_norm, x1_norm, y1_norm = [float(v) for v in rect]
+            x0, y0, x1, y1 = [float(v) for v in rect]
 
-            # Reverse the scaling (padded space -> resized space -> original space)
             back_scale_x = 1.0 / scale_x if scale_x else 1.0
             back_scale_y = 1.0 / scale_y if scale_y else 1.0
 
-            x0 = x0_norm * back_scale_x
-            y0 = y0_norm * back_scale_y
-            x1 = x1_norm * back_scale_x
-            y1 = y1_norm * back_scale_y
+            x0, x1 = sorted([x0 * back_scale_x, x1 * back_scale_x])
+            y0, y1 = sorted([y0 * back_scale_y, y1 * back_scale_y])
 
-            # Ensure proper ordering
-            x_min, x_max = sorted([x0, x1])
-            y_min, y_max = sorted([y0, y1])
-
-            # Clamp to original image bounds
-            x_min = max(0.0, min(original_width, x_min))
-            x_max = max(0.0, min(original_width, x_max))
-            y_min = max(0.0, min(original_height, y_min))
-            y_max = max(0.0, min(original_height, y_max))
-
-            return x_min, y_min, x_max, y_max
+            return (
+                max(0.0, min(original_width, x0)),
+                max(0.0, min(original_height, y0)),
+                max(0.0, min(original_width, x1)),
+                max(0.0, min(original_height, y1))
+            )
 
         except (TypeError, ValueError) as e:
             log.error(f"Failed to denormalize coordinates: {e}")

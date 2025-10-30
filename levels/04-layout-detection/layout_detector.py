@@ -61,20 +61,7 @@ class LayoutDetector:
             raise
 
     def detect_layouts(self, img_base64: str, page_num: int) -> List[Dict]:
-        """
-        Detect layout regions in a document image
-
-        Args:
-            img_base64: Base64-encoded PNG image
-            page_num: Page number (for logging)
-
-        Returns:
-            List of layout dictionaries with keys:
-                - layout_type: Type of layout region
-                - rect: Bounding box [x0, y0, x1, y1] in image coordinates
-                - confidence: Confidence level
-                - description: Brief description
-        """
+        """Detect layout regions in a document image"""
         try:
             user_prompt = (
                 f"Please analyze this document image (page {page_num + 1}) and detect all layout regions. "
@@ -122,67 +109,33 @@ class LayoutDetector:
             return []
 
     def _parse_response(self, response_text: str, page_num: int) -> List[Dict]:
-        """
-        Parse VLM response into structured layout data
-
-        Args:
-            response_text: Raw response from VLM
-            page_num: Page number (for logging)
-
-        Returns:
-            List of parsed layout dictionaries
-        """
+        """Parse VLM response into structured layout data"""
         try:
             cleaned = response_text.strip()
 
-            # Remove markdown code fences if present
-            if cleaned.startswith("```"):
-                lines = cleaned.split("\n")
-                # Remove first line (```json or ```)
-                lines = lines[1:]
-                # Remove last line if it's ```
-                if lines and lines[-1].strip() == "```":
-                    lines = lines[:-1]
-                cleaned = "\n".join(lines).strip()
-            else:
-                # Handle inline code blocks
-                if "```" in cleaned:
-                    parts = cleaned.split("```")
-                    if len(parts) >= 3:
-                        # Extract content between first pair of ```
-                        inner = parts[1]
-                        # Remove language identifier if present
-                        if "\n" in inner:
-                            cleaned = inner.split("\n", 1)[1].strip()
-                        else:
-                            cleaned = inner.strip()
+            # Remove markdown code fences
+            if "```" in cleaned:
+                start = cleaned.find("```")
+                end = cleaned.rfind("```")
+                if start != -1 and end != -1 and end > start:
+                    inner = cleaned[start + 3:end]
+                    # Remove language identifier if present
+                    cleaned = inner.split("\n", 1)[1].strip() if "\n" in inner else inner.strip()
 
-            # Extract JSON array if embedded in text
-            if not (cleaned.startswith("[") and cleaned.endswith("]")):
+            # Extract JSON array
+            if not cleaned.startswith("["):
                 start = cleaned.find("[")
                 end = cleaned.rfind("]")
                 if start != -1 and end != -1 and end > start:
                     cleaned = cleaned[start:end + 1]
 
-            # Parse JSON
             layouts = json.loads(cleaned)
 
             if not isinstance(layouts, list):
                 log.error(f"Response is not a list for page {page_num}")
                 return []
 
-            # Validate each layout
-            valid_layouts = []
-            for layout in layouts:
-                if self._validate_layout(layout):
-                    valid_layouts.append(layout)
-                else:
-                    log.warning(
-                        f"Invalid layout on page {page_num}: "
-                        f"{layout.get('layout_type', 'unknown')}"
-                    )
-
-            return valid_layouts
+            return [layout for layout in layouts if self._validate_layout(layout, page_num)]
 
         except json.JSONDecodeError as e:
             log.error(f"Failed to parse JSON for page {page_num}: {e}")
@@ -192,39 +145,24 @@ class LayoutDetector:
             log.error(f"Failed to parse response for page {page_num}: {e}")
             return []
 
-    def _validate_layout(self, layout: Dict) -> bool:
-        """
-        Validate layout dictionary has required fields and valid values
-
-        Args:
-            layout: Layout dictionary to validate
-
-        Returns:
-            True if valid, False otherwise
-        """
+    def _validate_layout(self, layout: Dict, page_num: int) -> bool:
+        """Validate layout dictionary has required fields and valid values"""
         try:
-            # Check required fields
             if not all(key in layout for key in ['layout_type', 'rect']):
                 return False
 
-            # Validate rect
             rect = layout['rect']
             if not isinstance(rect, list) or len(rect) != 4:
                 return False
 
             x0, y0, x1, y1 = [float(v) for v in rect]
 
-            # Check coordinate ordering
             if x0 >= x1 or y0 >= y1:
                 return False
 
-            # Check bounds (should be within TARGET_SIZE)
+            # Clamp to bounds
             if x0 < 0 or y0 < 0 or x1 > TARGET_SIZE or y1 > TARGET_SIZE:
-                log.warning(
-                    f"Layout rect out of bounds: [{x0}, {y0}, {x1}, {y1}], "
-                    f"clamping to [{TARGET_SIZE}, {TARGET_SIZE}]"
-                )
-                # Clamp but don't reject
+                log.warning(f"Page {page_num}: Clamping out-of-bounds rect for {layout['layout_type']}")
                 layout['rect'] = [
                     max(0, min(TARGET_SIZE, x0)),
                     max(0, min(TARGET_SIZE, y0)),
