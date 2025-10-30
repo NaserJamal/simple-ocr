@@ -185,15 +185,9 @@ def extract_with_vlm(page, page_num: int) -> str:
 
 ---
 
-## Installation & Setup
+## Setup
 
-### 1. Install dependencies
-```bash
-cd levels/03-smart-quality-detection
-pip install -r requirements.txt
-```
-
-### 2. Configure API credentials
+### Configure API credentials
 Copy the `.env.example` from the root directory and fill in your credentials:
 
 ```bash

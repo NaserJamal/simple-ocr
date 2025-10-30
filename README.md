@@ -134,21 +134,25 @@ git clone <repository-url>
 cd simple-ocr
 ```
 
-2. **Start with Level 01**
+2. **Install dependencies**
+```bash
+pip install -r requirements.txt
+```
+
+3. **Start with Level 01**
 ```bash
 cd levels/01-basic-text-extraction
-pip install -r requirements.txt
 python extract.py
 ```
 
-3. **Check the output**
+4. **Check the output**
 ```bash
 cat output/output.txt
 ```
 
-4. **Read the level's README** to understand what happened
+5. **Read the level's README** to understand what happened
 
-5. **Progress to the next level** when ready
+6. **Progress to the next level** when ready
 
 ---
 

@@ -1,0 +1,14 @@
+# Simple OCR Tutorial - All Dependencies
+# Install with: pip install -r requirements.txt
+
+# Core PDF processing
+pymupdf>=1.24.0
+
+# OpenAI API for Vision Language Models
+openai>=1.0.0
+
+# Environment variable management
+python-dotenv>=1.0.0
+
+# Image processing
+pillow>=10.0.0

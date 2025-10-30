@@ -135,12 +135,7 @@ All Sections + Context → VLM Reconstruction → Cohesive Markdown
 
 ### Prerequisites
 
-1. Install required dependencies:
-```bash
-pip install -r requirements.txt
-```
-
-2. Set up environment variables in `../../.env`:
+Set up environment variables in `../../.env`:
 ```env
 OCR_MODEL_API_KEY=your_api_key
 OCR_MODEL_BASE_URL=your_base_url

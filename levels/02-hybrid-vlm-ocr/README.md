@@ -116,15 +116,9 @@ Sends the page image to a vision model with a simple prompt: "Extract all text f
 
 ---
 
-## Installation & Setup
+## Setup
 
-### 1. Install dependencies
-```bash
-cd levels/02-hybrid-vlm-ocr
-pip install -r requirements.txt
-```
-
-### 2. Configure API credentials
+### Configure API credentials
 Copy the `.env.example` from the root directory and fill in your credentials:
 
 ```bash
@@ -151,7 +145,7 @@ OCR_MODEL_NAME=gpt-4o-mini
 
 ```bash
 # Make sure you're in the level directory
-python extract.py
+python main.py
 ```
 
 **Expected output:**

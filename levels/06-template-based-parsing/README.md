@@ -100,15 +100,9 @@ levels/06-template-based-parsing/
 
 ---
 
-## Installation & Setup
+## Setup
 
-### 1. Install dependencies
-```bash
-cd levels/06-template-based-parsing
-pip install -r requirements.txt
-```
-
-### 2. Configure API credentials
+### Configure API credentials
 Ensure your `.env` file exists at the project root with:
 
 ```env

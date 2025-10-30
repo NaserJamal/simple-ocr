@@ -57,23 +57,14 @@ open("output/output.txt", "w").write(text)
 
 ---
 
-## Installation
+## Running the Example
 
 ```bash
 # Navigate to this level's directory
 cd levels/01-basic-text-extraction
 
-# Install dependencies
-pip install -r requirements.txt
-```
-
----
-
-## Running the Example
-
-```bash
-# Make sure you're in the level directory
-python extract.py
+# Run the extraction script
+python main.py
 ```
 
 **Expected output:**
