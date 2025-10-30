@@ -1,23 +1,20 @@
-"""
-Interactive menu system for user interaction
-Handles all console prompts and user input
-"""
+"""Interactive menu system for user interaction."""
 
-import os
 import json
-from typing import Optional, Dict, List
+import os
+from typing import Dict, List, Optional
 
 
-def display_welcome_banner(pdf_name: str):
-    """Display welcome banner with PDF name"""
-    print("\n" + "="*80)
+def display_welcome_banner(pdf_name: str) -> None:
+    """Display welcome banner with PDF name."""
+    print("\n" + "=" * 80)
     print("SPECIFIC LOCATION TEXT EXTRACTION")
-    print("="*80)
+    print("=" * 80)
     print(f"\nPDF: {pdf_name}")
 
 
 def prompt_mode_selection(has_cache: bool) -> str:
-    """Prompt user to choose between existing sections or new detection
+    """Prompt user to choose between existing sections or new detection.
 
     Returns:
         'existing' or 'new'
@@ -25,11 +22,11 @@ def prompt_mode_selection(has_cache: bool) -> str:
     if not has_cache:
         return 'new'
 
-    print("\n" + "-"*80)
+    print("\n" + "-" * 80)
     print("Choose a mode:")
     print("  [1] Use existing sections (from previous detection)")
     print("  [2] Identify new sections (detect layout again)")
-    print("-"*80)
+    print("-" * 80)
 
     mode_input = input("Your choice (1 or 2): ").strip()
 
@@ -43,7 +40,7 @@ def prompt_mode_selection(has_cache: bool) -> str:
 
 
 def display_sections_menu(cached_data: List[Dict]) -> Optional[Dict]:
-    """Display cached sections and let user choose which to extract
+    """Display cached sections and let user choose which to extract.
 
     Args:
         cached_data: List of page data with sections
@@ -51,9 +48,9 @@ def display_sections_menu(cached_data: List[Dict]) -> Optional[Dict]:
     Returns:
         Dictionary with 'mode' and 'sections' keys, or None on error
     """
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print("AVAILABLE SECTIONS")
-    print("="*80)
+    print("=" * 80)
 
     all_sections = []
     for page_data in cached_data:
@@ -76,10 +73,10 @@ def display_sections_menu(cached_data: List[Dict]) -> Optional[Dict]:
         if sec['text_preview']:
             print(f"    Preview: {sec['text_preview']}...")
 
-    print("\n" + "-"*80)
+    print("\n" + "-" * 80)
     print("Enter section numbers to extract (comma-separated, e.g., '1,3,5')")
     print("Or press Enter to extract all sections")
-    print("-"*80)
+    print("-" * 80)
 
     user_input = input("Your choice: ").strip()
 
@@ -102,42 +99,42 @@ def display_sections_menu(cached_data: List[Dict]) -> Optional[Dict]:
 
 
 def prompt_extraction_context_for_cached() -> Optional[str]:
-    """Prompt user for extraction context when using cached sections
+    """Prompt user for extraction context when using cached sections.
 
     Returns:
         User's extraction request or None
     """
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print("What do you want to extract from these sections?")
     print("Examples:")
     print("  - 'extract the notes'")
     print("  - 'find contact information'")
     print("  - Press Enter to extract all text as-is")
-    print("-"*80)
+    print("-" * 80)
 
     section_request = input("Your request: ").strip() or None
 
     if section_request:
         print(f"\nExtracting: '{section_request}'")
-    print("="*80 + "\n")
+    print("=" * 80 + "\n")
 
     return section_request
 
 
 def prompt_section_request_for_new() -> Optional[str]:
-    """Prompt user for section request when detecting new sections
+    """Prompt user for section request when detecting new sections.
 
     Returns:
         User's section request or None
     """
-    print("\n" + "-"*80)
+    print("\n" + "-" * 80)
     print("What section would you like to extract?")
     print("Examples:")
     print("  - 'extract the notes section'")
     print("  - 'find the summary'")
     print("  - 'get the contact information'")
     print("  - Press Enter to detect and extract ALL sections")
-    print("-"*80)
+    print("-" * 80)
 
     user_input = input("Your request: ").strip()
 
@@ -145,26 +142,29 @@ def prompt_section_request_for_new() -> Optional[str]:
         print(f"\nExtracting: '{user_input}'")
     else:
         print("\nDetecting all sections (default mode)")
-    print("="*80 + "\n")
+    print("=" * 80 + "\n")
 
     return user_input or None
 
 
-def display_results_summary(result: Dict, output_dir: str):
-    """Display extraction results summary
+def display_results_summary(result: Dict, output_dir: str) -> bool:
+    """Display extraction results summary.
 
     Args:
         result: Result dictionary from extraction
         output_dir: Output directory path
+
+    Returns:
+        True if successful, False otherwise
     """
     if not result.get('success'):
         print(f"\nERROR: {result.get('error', 'Unknown error')}")
         return False
 
     s = result['summary']
-    print(f"\n{'='*80}")
+    print(f"\n{'=' * 80}")
     print("LAYOUT-BASED TEXT EXTRACTION COMPLETE")
-    print(f"{'='*80}")
+    print(f"{'=' * 80}")
 
     # num_pages only exists for full document processing
     if 'num_pages' in result:
@@ -184,13 +184,13 @@ def display_results_summary(result: Dict, output_dir: str):
     # Visualizations only for full document processing
     if 'num_pages' in result:
         print(f"  - page_N_sections.png: Visualizations")
-    print(f"{'='*80}")
+    print(f"{'=' * 80}")
 
     return True
 
 
 def load_cached_sections(cache_path: str) -> Optional[List[Dict]]:
-    """Load cached sections from file
+    """Load cached sections from file.
 
     Args:
         cache_path: Path to cache file

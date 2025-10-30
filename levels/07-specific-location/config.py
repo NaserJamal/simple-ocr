@@ -1,16 +1,13 @@
-"""
-Configuration constants for layout detection and text extraction system
-"""
+"""Configuration constants for layout detection and text extraction system."""
 
 # Image preprocessing
-TARGET_SIZE = 1001  # Target size for VLM processing (works well with Qwen)
-RENDER_DPI = 72     # DPI for PDF rendering (1:1 pixel mapping)
-RENDER_SCALE = 1    # Scale factor for PDF to image conversion
+TARGET_SIZE = 1001
+RENDER_SCALE = 1
 
 # Visualization
-VIZ_LINE_WIDTH = 3  # Width of bounding box lines
-VIZ_FONT_SIZE = 12  # Font size for labels
-VIZ_ALPHA = 0.2     # Transparency for filled regions
+VIZ_LINE_WIDTH = 3
+VIZ_FONT_SIZE = 12
+VIZ_ALPHA = 0.2
 
 # Color mapping for different section types (RGB)
 SECTION_COLORS = {
@@ -31,11 +28,9 @@ SECTION_COLORS = {
     'default': (80, 80, 80)              # Dark Gray fallback
 }
 
-# API settings for section detection
+# API settings
 API_MAX_TOKENS = 16000
 API_TEMPERATURE = 0.1
-
-# API settings for text extraction
 OCR_MAX_TOKENS = 8000
 OCR_TEMPERATURE = 0.0
 

@@ -1,40 +1,47 @@
-"""
-PDF layout-based text extraction - detects sections and extracts text in parallel
-"""
+"""PDF layout-based text extraction - detects sections and extracts text in parallel."""
 
-import os
-import sys
+import io
 import json
 import logging
+import os
+import sys
+from typing import Dict, List, Optional
+
 import pymupdf
 from PIL import Image
-import io
 
+from config import OUTPUT_DIR
 from image_processor import ImageProcessor
 from section_detector import SectionDetector
 from text_extractor import TextExtractor
 from visualizer import SectionVisualizer
-from config import OUTPUT_DIR
 import interactive_menu as menu
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logging.basicConfig(
+    level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 log = logging.getLogger(__name__)
 
-# Default PDF to process (relative to this script's directory)
 DEFAULT_PDF = "../../PDF/form-field-example-2.pdf"
 
 
 class LayoutTextExtractor:
-    """Extracts text from PDF documents using layout-based section detection"""
+    """Extracts text from PDF documents using layout-based section detection."""
 
-    def __init__(self, pdf_path: str, output_dir: str = OUTPUT_DIR, max_workers: int = 5, section_request: str = None):
-        """Initialize extractor with PDF path and output directory
+    def __init__(
+        self,
+        pdf_path: str,
+        output_dir: str = OUTPUT_DIR,
+        max_workers: int = 5,
+        section_request: Optional[str] = None,
+    ) -> None:
+        """Initialize extractor with PDF path and output directory.
 
         Args:
             pdf_path: Path to PDF file
             output_dir: Directory for output files
             max_workers: Number of parallel workers for text extraction
-            section_request: User's natural language description of section to extract (e.g., "extract the notes section")
+            section_request: User's natural language description of section to extract
         """
         self.pdf_path = pdf_path
         self.output_dir = output_dir
@@ -45,8 +52,8 @@ class LayoutTextExtractor:
         self.visualizer = SectionVisualizer()
         os.makedirs(self.output_dir, exist_ok=True)
 
-    def process_document(self) -> dict:
-        """Process entire PDF document and extract text"""
+    def process_document(self) -> Dict:
+        """Process entire PDF document and extract text."""
         log.info(f"Processing PDF: {self.pdf_path}")
 
         try:
@@ -65,11 +72,12 @@ class LayoutTextExtractor:
 
                     # Collect text for combined output
                     if 'sections' in page_result:
-                        page_text = f"\n{'='*80}\nPAGE {page_num + 1}\n{'='*80}\n\n"
+                        page_text = f"\n{'=' * 80}\nPAGE {page_num + 1}\n{'=' * 80}\n\n"
                         for section in page_result['sections']:
                             text = section.get('text', '')
                             if text:
-                                page_text += f"[{section.get('section_type', 'unknown').upper()}]\n{text}\n\n"
+                                section_type = section.get('section_type', 'unknown').upper()
+                                page_text += f"[{section_type}]\n{text}\n\n"
                         all_text_parts.append(page_text)
 
                 except Exception as e:
@@ -84,22 +92,32 @@ class LayoutTextExtractor:
             summary = self._generate_summary(all_results)
             log.info(f"Processing complete: {summary}")
 
-            return {"success": True, "num_pages": num_pages, "results": all_results, "summary": summary}
+            return {
+                "success": True,
+                "num_pages": num_pages,
+                "results": all_results,
+                "summary": summary,
+            }
 
         except Exception as e:
             log.error(f"Failed to process document: {e}")
             return {"success": False, "error": str(e)}
 
-    def process_page(self, page: pymupdf.Page, page_num: int) -> dict:
-        """Process a single PDF page"""
+    def process_page(self, page: pymupdf.Page, page_num: int) -> Dict:
+        """Process a single PDF page."""
         img_base64, orig_width, orig_height, scale_x, scale_y = self.processor.process_page(page)
         sections = self.detector.detect_sections(img_base64, page_num)
 
         # Denormalize coordinates to original space
         denormalized_sections = [
-            {**section, 'rect': list(self.processor.denormalize_coordinates(
-                section['rect'], orig_width, orig_height, scale_x, scale_y
-            ))}
+            {
+                **section,
+                'rect': list(
+                    self.processor.denormalize_coordinates(
+                        section['rect'], orig_width, orig_height, scale_x, scale_y
+                    )
+                ),
+            }
             for section in sections
         ]
 
@@ -118,35 +136,41 @@ class LayoutTextExtractor:
             "page": page_num,
             "sections": sections_with_text,
             "num_sections": len(sections_with_text),
-            "image_dimensions": {"width": orig_width, "height": orig_height}
+            "image_dimensions": {"width": orig_width, "height": orig_height},
         }
 
-    def _create_visualization(self, page_image: Image.Image, sections: list, page_num: int):
-        """Create and save visualization for a page"""
+    def _create_visualization(
+        self, page_image: Image.Image, sections: List[Dict], page_num: int
+    ) -> None:
+        """Create and save visualization for a page."""
         output_path = os.path.join(self.output_dir, f"page_{page_num + 1}_sections.png")
-        self.visualizer.save_visualization(page_image, sections, output_path, show_labels=True, show_fill=False)
+        self.visualizer.save_visualization(
+            page_image, sections, output_path, show_labels=True, show_fill=False
+        )
         log.info(f"Saved visualization: {output_path}")
 
-    def _save_json_results(self, results: list):
-        """Save all results to JSON file"""
+    def _save_json_results(self, results: List[Dict]) -> None:
+        """Save all results to JSON file."""
         output_path = os.path.join(self.output_dir, "sections.json")
         with open(output_path, 'w', encoding='utf-8') as f:
             json.dump(results, f, indent=2, ensure_ascii=False)
         log.info(f"Saved JSON results to {output_path}")
 
-    def _load_cached_sections(self) -> list:
-        """Load previously detected sections from cache file"""
+    def _load_cached_sections(self) -> Optional[List[Dict]]:
+        """Load previously detected sections from cache file."""
         cache_path = os.path.join(self.output_dir, "sections.json")
-        if os.path.exists(cache_path):
-            try:
-                with open(cache_path, 'r', encoding='utf-8') as f:
-                    return json.load(f)
-            except Exception as e:
-                log.warning(f"Failed to load cached sections: {e}")
-        return None
+        if not os.path.exists(cache_path):
+            return None
 
-    def extract_from_cached_section(self, section_indices: list) -> dict:
-        """Re-extract text from specific cached sections with new user prompt"""
+        try:
+            with open(cache_path, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except Exception as e:
+            log.warning(f"Failed to load cached sections: {e}")
+            return None
+
+    def extract_from_cached_section(self, section_indices: List[int]) -> Dict:
+        """Re-extract text from specific cached sections with new user prompt."""
         cached_data = self._load_cached_sections()
         if not cached_data:
             return {"success": False, "error": "No cached sections found"}
@@ -201,16 +225,16 @@ class LayoutTextExtractor:
             log.error(f"Failed to extract from cached sections: {e}")
             return {"success": False, "error": str(e)}
 
-    def _save_text_results(self, text_parts: list):
-        """Save extracted text to .txt file"""
+    def _save_text_results(self, text_parts: List[str]) -> None:
+        """Save extracted text to .txt file."""
         output_path = os.path.join(self.output_dir, "extracted_text.txt")
         with open(output_path, 'w', encoding='utf-8') as f:
             f.write('\n'.join(text_parts))
         log.info(f"Saved extracted text to {output_path}")
 
-    def _generate_summary(self, results: list) -> dict:
-        """Generate summary statistics"""
-        section_types = {}
+    def _generate_summary(self, results: List[Dict]) -> Dict:
+        """Generate summary statistics."""
+        section_types: Dict[str, int] = {}
         total_chars = 0
 
         for result in results:
@@ -224,19 +248,18 @@ class LayoutTextExtractor:
             "successful_pages": sum(1 for r in results if 'error' not in r),
             "failed_pages": sum(1 for r in results if 'error' in r),
             "section_types": section_types,
-            "total_characters_extracted": total_chars
+            "total_characters_extracted": total_chars,
         }
 
 
-def run_interactive_mode(pdf_path: str, output_dir: str, cache_path: str):
-    """Run interactive mode with user prompts"""
+def run_interactive_mode(pdf_path: str, output_dir: str, cache_path: str) -> Dict:
+    """Run interactive mode with user prompts."""
     menu.display_welcome_banner(os.path.basename(pdf_path))
 
     has_cache = os.path.exists(cache_path)
     mode_choice = menu.prompt_mode_selection(has_cache)
 
     if mode_choice == 'existing':
-        # Use existing cached sections
         cached_data = menu.load_cached_sections(cache_path)
         if not cached_data:
             print("Error: Could not load cached sections. Switching to new detection.")
@@ -261,8 +284,8 @@ def run_interactive_mode(pdf_path: str, output_dir: str, cache_path: str):
     return extractor.process_document()
 
 
-def run_command_line_mode(pdf_path: str, section_request: str):
-    """Run command-line mode with provided section request"""
+def run_command_line_mode(pdf_path: str, section_request: Optional[str]) -> Dict:
+    """Run command-line mode with provided section request."""
     if section_request:
         log.info(f"User requested: '{section_request}'")
 
@@ -270,8 +293,8 @@ def run_command_line_mode(pdf_path: str, section_request: str):
     return extractor.process_document()
 
 
-def main():
-    """Main entry point"""
+def main() -> None:
+    """Main entry point."""
     # Parse command line arguments
     pdf_path = sys.argv[1] if len(sys.argv) > 1 else DEFAULT_PDF
     section_request = sys.argv[2] if len(sys.argv) > 2 else None
