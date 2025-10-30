@@ -106,6 +106,19 @@ By completing these levels, you'll understand:
 
 ---
 
+### [Level 08: Markdown Reconstruction](levels/08-markdown-reconstruction/)
+**Learn:** Converting PDFs to well-formatted, editable markdown documents
+
+- Section-based markdown extraction with parallel processing
+- AI-powered document reconstruction for cohesive output
+- Preserves formatting (headings, tables, lists, bold, italic)
+- Creates searchable, editable, version-control-friendly documents
+
+**Time:** 30 minutes
+**Cost:** ~$0.04-0.09 per page
+
+---
+
 ## Quick Start
 
 ### Prerequisites
@@ -173,10 +186,16 @@ simple-ocr/
     │   ├── extract_text.py
     │   ├── requirements.txt
     │   └── output/
-    └── 06-template-based-parsing/     # Template parsing
+    ├── 06-template-based-parsing/     # Template parsing
+    │   ├── README.md
+    │   ├── extract.py
+    │   ├── templates/
+    │   ├── requirements.txt
+    │   └── output/
+    └── 08-markdown-reconstruction/    # Markdown reconstruction
         ├── README.md
-        ├── extract.py
-        ├── templates/
+        ├── extract_markdown.py
+        ├── markdown_reconstructor.py
         ├── requirements.txt
         └── output/
 ```
@@ -243,6 +262,8 @@ These patterns are used for:
 - 📋 Receipt scanning
 - 📚 Document archive digitization
 - 🎓 Academic paper processing
+- 📝 Converting PDFs to markdown for wikis and documentation
+- 🔍 Making scanned documents searchable and editable
 
 ---
 
