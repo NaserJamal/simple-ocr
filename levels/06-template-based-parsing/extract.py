@@ -1,9 +1,11 @@
 import os
 import json
-import base64
 from pathlib import Path
 from openai import OpenAI
 from dotenv import load_dotenv
+
+from image_processor import ImageProcessor
+from config import API_TEMPERATURE
 
 load_dotenv("../../.env")
 
@@ -57,14 +59,10 @@ def select_template():
             print("Invalid input. Please try again.")
 
 
-def image_to_base64(image_path):
-    """Convert an image file to base64 string."""
-    with open(image_path, 'rb') as f:
-        return base64.b64encode(f.read()).decode()
 
 
-def extract_with_vlm(image_path, template_key):
-    """Extract structured data from an image using VLM with the specified template."""
+def extract_with_vlm(file_path, template_key):
+    """Extract structured data from an image/PDF using VLM with the specified template."""
     # Initialize OpenAI client
     client = OpenAI(
         api_key=os.getenv("OCR_MODEL_API_KEY"),
@@ -74,12 +72,12 @@ def extract_with_vlm(image_path, template_key):
     # Load template prompt
     system_prompt = load_template_prompt(template_key)
 
-    # Convert image to base64
-    img_b64 = image_to_base64(image_path)
+    # Process file with proper resizing
+    print(f"\nProcessing document with template: {TEMPLATES[template_key]['name']}...")
+    processor = ImageProcessor()
+    img_b64 = processor.process_file(file_path)
 
     # Make API request
-    print(f"\nProcessing image with template: {TEMPLATES[template_key]['name']}...")
-
     response = client.chat.completions.create(
         model=os.getenv("OCR_MODEL_NAME"),
         messages=[{
@@ -89,7 +87,8 @@ def extract_with_vlm(image_path, template_key):
                 {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{img_b64}"}}
             ]
         }],
-        temperature=0  # Use deterministic output for extraction
+        temperature=API_TEMPERATURE,  # Use deterministic output for extraction
+        response_format={"type": "json_object"}  # Force JSON output
     )
 
     return response.choices[0].message.content
@@ -126,17 +125,17 @@ def main():
     template_key = select_template()
     print(f"\nSelected: {TEMPLATES[template_key]['name']}")
 
-    # Get image path
-    image_path = input("\nEnter the path to the image/document: ").strip()
+    # Get file path
+    file_path = input("\nEnter the path to the image/document (PDF, PNG, JPG): ").strip()
 
-    # Validate image path
-    if not os.path.exists(image_path):
-        print(f"Error: File not found: {image_path}")
+    # Validate file path
+    if not os.path.exists(file_path):
+        print(f"Error: File not found: {file_path}")
         return
 
     # Extract data
     try:
-        result = extract_with_vlm(image_path, template_key)
+        result = extract_with_vlm(file_path, template_key)
 
         # Save output
         output_path = Path(__file__).parent / "output" / f"extracted_{template_key}.json"
