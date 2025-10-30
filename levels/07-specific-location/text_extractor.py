@@ -24,8 +24,13 @@ load_dotenv("../../.env")
 class TextExtractor:
     """Extracts text from document section images using VLM OCR"""
 
-    def __init__(self, max_workers: int = 5):
-        """Initialize text extractor with API client"""
+    def __init__(self, max_workers: int = 5, section_request: str = None):
+        """Initialize text extractor with API client
+
+        Args:
+            max_workers: Number of parallel workers for extraction
+            section_request: User's natural language description of what to extract
+        """
         api_key = os.getenv("OCR_MODEL_API_KEY")
         base_url = os.getenv("OCR_MODEL_BASE_URL")
         self.model_name = os.getenv("OCR_MODEL_NAME")
@@ -35,6 +40,7 @@ class TextExtractor:
 
         self.client = OpenAI(api_key=api_key, base_url=base_url)
         self.max_workers = max_workers
+        self.section_request = section_request
 
     def extract_sections_parallel(self, page_image: Image.Image, sections: List[Dict], page_num: int) -> List[Dict]:
         """Extract text from multiple sections in parallel"""
@@ -88,10 +94,20 @@ class TextExtractor:
             "Return ONLY the extracted text with no additional commentary or markdown formatting."
         )
 
-        user_prompt = (
-            f"Extract all text from this {section_type.replace('_', ' ')} section. "
-            "Return the text exactly as it appears, maintaining the original structure and formatting."
-        )
+        if self.section_request:
+            # Include user's original request for context-aware extraction
+            user_prompt = (
+                f"The user requested: '{self.section_request}'\n\n"
+                f"This is a {section_type.replace('_', ' ')} section that matches their request. "
+                "Extract all text from this image exactly as it appears, maintaining the original structure and formatting. "
+                "Focus on extracting the content the user is looking for."
+            )
+        else:
+            # Generic extraction when no specific request
+            user_prompt = (
+                f"Extract all text from this {section_type.replace('_', ' ')} section. "
+                "Return the text exactly as it appears, maintaining the original structure and formatting."
+            )
 
         response = self.client.chat.completions.create(
             model=self.model_name,

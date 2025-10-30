@@ -40,7 +40,7 @@ class LayoutTextExtractor:
         self.section_request = section_request
         self.processor = ImageProcessor()
         self.detector = SectionDetector(section_request=section_request)
-        self.text_extractor = TextExtractor(max_workers=max_workers)
+        self.text_extractor = TextExtractor(max_workers=max_workers, section_request=section_request)
         self.visualizer = SectionVisualizer()
         os.makedirs(self.output_dir, exist_ok=True)
 
