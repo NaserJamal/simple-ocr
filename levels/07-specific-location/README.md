@@ -130,7 +130,10 @@ OCR_MODEL_NAME=your_model_name
 ```bash
 python extract_text.py
 ```
-The system will prompt you:
+
+The system will guide you through an interactive workflow:
+
+**First Run (No cached sections):**
 ```
 ================================================================================
 SPECIFIC LOCATION TEXT EXTRACTION
@@ -138,17 +141,71 @@ SPECIFIC LOCATION TEXT EXTRACTION
 
 PDF: form-field-example.pdf
 
+--------------------------------------------------------------------------------
 What section would you like to extract?
 Examples:
   - 'extract the notes section'
   - 'find the summary'
   - 'get the contact information'
-  - Press Enter to extract ALL sections
+  - Press Enter to detect and extract ALL sections
 --------------------------------------------------------------------------------
 Your request:
 ```
 
-Type your request in natural language, or press Enter to extract all sections.
+**Subsequent Runs (With cached sections):**
+```
+================================================================================
+SPECIFIC LOCATION TEXT EXTRACTION
+================================================================================
+
+PDF: form-field-example.pdf
+
+--------------------------------------------------------------------------------
+Choose a mode:
+  [1] Use existing sections (from previous detection)
+  [2] Identify new sections (detect layout again)
+--------------------------------------------------------------------------------
+Your choice (1 or 2):
+```
+
+If you choose **[1] Use existing sections**, you'll see:
+```
+================================================================================
+AVAILABLE SECTIONS
+================================================================================
+
+[1] Page 1 - Header Section
+    Preview: Form Field Example...
+
+[2] Page 1 - Content Block
+    Preview: This is a sample form with various fields...
+
+[3] Page 1 - Notes Section
+    Preview: Additional notes and comments...
+
+--------------------------------------------------------------------------------
+Enter section numbers to extract (comma-separated, e.g., '1,3,5')
+Or press Enter to extract all sections
+--------------------------------------------------------------------------------
+Your choice:
+```
+
+Then you can optionally provide context for extraction:
+```
+================================================================================
+What do you want to extract from these sections?
+Examples:
+  - 'extract the notes'
+  - 'find contact information'
+  - Press Enter to extract all text as-is
+--------------------------------------------------------------------------------
+Your request:
+```
+
+This workflow allows you to:
+- **Reuse detected sections** without re-running VLM detection (faster, cheaper)
+- **Select specific sections** from previous detection
+- **Provide new extraction context** for the same sections
 
 **Command-Line Mode:**
 
@@ -238,7 +295,7 @@ When you provide a natural language request like "extract the notes section", th
    - Can map general terms to specific sections ("bio" → summary/contact info)
    - Can identify custom sections unique to your document ("notes", "findings", etc.)
 3. **Returns only matching sections** with precise bounding boxes
-4. **Extracts text** from just those specific sections
+4. **Extracts text with your context** - the VLM knows what you're looking for
 5. **Saves results** focused on your specific request
 
 This is more flexible than hardcoded section types because:
@@ -246,6 +303,23 @@ This is more flexible than hardcoded section types because:
 - Understands natural language variations
 - Can identify domain-specific sections
 - No need to know exact section names in advance
+
+## Cached Sections Workflow
+
+After the first run, sections are cached in `output/sections.json`. This enables:
+
+### Benefits of Using Cached Sections:
+1. **Faster Processing**: Skip VLM section detection (saves time and API costs)
+2. **Consistent Boundaries**: Use the same section boundaries for different extractions
+3. **Multiple Extractions**: Extract different information from the same sections
+4. **Cost Effective**: Only pay for text extraction, not detection
+
+### Example Use Cases:
+- **First run**: Detect all sections with "Press Enter"
+- **Second run**: Extract just section #3 (notes) with context "extract notes"
+- **Third run**: Extract sections #1,2 with context "find contact info"
+
+This workflow is ideal when you want to extract different information from the same document multiple times.
 
 ## Design Decisions
 
