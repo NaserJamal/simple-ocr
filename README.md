@@ -130,7 +130,7 @@ By completing these levels, you'll understand:
 
 1. **Clone this repository**
 ```bash
-git clone <repository-url>
+git clone https://github.com/NaserJamal/simple-ocr.git
 cd simple-ocr
 ```
 
