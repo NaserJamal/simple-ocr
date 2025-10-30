@@ -39,14 +39,10 @@ class SectionVisualizer:
         """Draw section regions on image"""
         annotated = image.copy()
         draw = ImageDraw.Draw(annotated, 'RGBA' if show_fill else 'RGB')
-
         log.info(f"Visualizing {len(sections)} layout sections")
 
         for idx, section in enumerate(sections):
-            try:
-                self._draw_section(draw, section, idx, show_labels, show_fill)
-            except Exception as e:
-                log.warning(f"Failed to draw section {idx}: {e}")
+            self._draw_section(draw, section, idx, show_labels, show_fill)
 
         return annotated
 
@@ -89,10 +85,6 @@ class SectionVisualizer:
 
     def save_visualization(self, image: Image.Image, sections: List[Dict], output_path: str, show_labels: bool = True, show_fill: bool = False):
         """Create and save visualization to file"""
-        try:
-            annotated = self.visualize_sections(image, sections, show_labels, show_fill)
-            annotated.save(output_path, "PNG")
-            log.info(f"Saved visualization to {output_path}")
-        except Exception as e:
-            log.error(f"Failed to save visualization: {e}")
-            raise
+        annotated = self.visualize_sections(image, sections, show_labels, show_fill)
+        annotated.save(output_path, "PNG")
+        log.info(f"Saved visualization to {output_path}")

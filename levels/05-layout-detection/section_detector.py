@@ -23,37 +23,21 @@ class SectionDetector:
 
     def __init__(self, prompt_file: str = PROMPT_FILE):
         """Initialize section detector with API client"""
-        self.client = self._initialize_client()
-        self.system_prompt = self._load_prompt(prompt_file)
-        self.model_name = os.getenv("OCR_MODEL_NAME")
-
-        if not self.model_name:
-            raise ValueError("OCR_MODEL_NAME not found in environment variables")
-
-    def _initialize_client(self) -> OpenAI:
-        """Initialize OpenAI client with custom endpoint"""
         api_key = os.getenv("OCR_MODEL_API_KEY")
         base_url = os.getenv("OCR_MODEL_BASE_URL")
+        self.model_name = os.getenv("OCR_MODEL_NAME")
 
-        if not api_key or not base_url:
-            raise ValueError(
-                "OCR_MODEL_API_KEY and OCR_MODEL_BASE_URL must be set in .env file"
-            )
+        if not all([api_key, base_url, self.model_name]):
+            raise ValueError("OCR_MODEL_API_KEY, OCR_MODEL_BASE_URL, and OCR_MODEL_NAME must be set in .env")
 
-        return OpenAI(api_key=api_key, base_url=base_url)
+        self.client = OpenAI(api_key=api_key, base_url=base_url)
+        self.system_prompt = self._load_prompt(prompt_file)
 
     def _load_prompt(self, prompt_file: str) -> str:
         """Load system prompt from file"""
-        try:
-            prompt_path = os.path.join(os.path.dirname(__file__), prompt_file)
-            with open(prompt_path, 'r', encoding='utf-8') as f:
-                return f.read().strip()
-        except FileNotFoundError:
-            log.error(f"Prompt file not found: {prompt_file}")
-            raise
-        except Exception as e:
-            log.error(f"Failed to load prompt file: {e}")
-            raise
+        prompt_path = os.path.join(os.path.dirname(__file__), prompt_file)
+        with open(prompt_path, 'r', encoding='utf-8') as f:
+            return f.read().strip()
 
     def detect_sections(self, img_base64: str, page_num: int) -> List[Dict]:
         """Detect layout sections in a document image"""
@@ -110,40 +94,33 @@ class SectionDetector:
 
             # Remove markdown code fences
             if "```" in cleaned:
-                start = cleaned.find("```")
-                end = cleaned.rfind("```")
-                if start != -1 and end != -1 and end > start:
+                start, end = cleaned.find("```"), cleaned.rfind("```")
+                if start != -1 and end > start:
                     inner = cleaned[start + 3:end]
-                    # Remove language identifier if present
                     cleaned = inner.split("\n", 1)[1].strip() if "\n" in inner else inner.strip()
 
             # Extract JSON array
             if not cleaned.startswith("["):
-                start = cleaned.find("[")
-                end = cleaned.rfind("]")
-                if start != -1 and end != -1 and end > start:
+                start, end = cleaned.find("["), cleaned.rfind("]")
+                if start != -1 and end > start:
                     cleaned = cleaned[start:end + 1]
 
             sections = json.loads(cleaned)
-
             if not isinstance(sections, list):
                 log.error(f"Response is not a list for page {page_num}")
                 return []
 
-            return [section for section in sections if self._validate_section(section, page_num)]
+            return [s for s in sections if self._validate_section(s, page_num)]
 
         except json.JSONDecodeError as e:
             log.error(f"Failed to parse JSON for page {page_num}: {e}")
             log.debug(f"Response text: {response_text[:500]}")
             return []
-        except Exception as e:
-            log.error(f"Failed to parse response for page {page_num}: {e}")
-            return []
 
     def _validate_section(self, section: Dict, page_num: int) -> bool:
         """Validate section dictionary has required fields and valid values"""
         try:
-            if not all(key in section for key in ['section_type', 'rect']):
+            if not all(k in section for k in ['section_type', 'rect']):
                 return False
 
             rect = section['rect']
@@ -151,12 +128,11 @@ class SectionDetector:
                 return False
 
             x0, y0, x1, y1 = [float(v) for v in rect]
-
             if x0 >= x1 or y0 >= y1:
                 return False
 
-            # Clamp to bounds
-            if x0 < 0 or y0 < 0 or x1 > TARGET_SIZE or y1 > TARGET_SIZE:
+            # Clamp to bounds if needed
+            if any(v < 0 or v > TARGET_SIZE for v in [x0, y0, x1, y1]):
                 log.warning(f"Page {page_num}: Clamping out-of-bounds rect for {section['section_type']}")
                 section['rect'] = [
                     max(0, min(TARGET_SIZE, x0)),
@@ -164,7 +140,6 @@ class SectionDetector:
                     max(0, min(TARGET_SIZE, x1)),
                     max(0, min(TARGET_SIZE, y1))
                 ]
-
             return True
 
         except (TypeError, ValueError, KeyError) as e:

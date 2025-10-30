@@ -27,14 +27,7 @@ class LayoutTextExtractor:
     """Extracts text from PDF documents using layout-based section detection"""
 
     def __init__(self, pdf_path: str, output_dir: str = OUTPUT_DIR, max_workers: int = 5):
-        """
-        Initialize extractor
-
-        Args:
-            pdf_path: Path to PDF file
-            output_dir: Directory for output files
-            max_workers: Maximum parallel text extraction tasks
-        """
+        """Initialize extractor with PDF path and output directory"""
         self.pdf_path = pdf_path
         self.output_dir = output_dir
         self.processor = ImageProcessor()
@@ -65,10 +58,9 @@ class LayoutTextExtractor:
                     if 'sections' in page_result:
                         page_text = f"\n{'='*80}\nPAGE {page_num + 1}\n{'='*80}\n\n"
                         for section in page_result['sections']:
-                            section_type = section.get('section_type', 'unknown')
                             text = section.get('text', '')
                             if text:
-                                page_text += f"[{section_type.upper()}]\n{text}\n\n"
+                                page_text += f"[{section.get('section_type', 'unknown').upper()}]\n{text}\n\n"
                         all_text_parts.append(page_text)
 
                 except Exception as e:
@@ -77,7 +69,6 @@ class LayoutTextExtractor:
 
             doc.close()
 
-            # Save results
             self._save_json_results(all_results)
             self._save_text_results(all_text_parts)
 
@@ -92,24 +83,16 @@ class LayoutTextExtractor:
 
     def process_page(self, page: pymupdf.Page, page_num: int) -> dict:
         """Process a single PDF page"""
-        # Convert page to image for detection
         img_base64, orig_width, orig_height, scale_x, scale_y = self.processor.process_page(page)
-
-        # Detect layout sections
         sections = self.detector.detect_sections(img_base64, page_num)
 
         # Denormalize coordinates to original space
-        denormalized_sections = []
-        for section in sections:
-            try:
-                x0, y0, x1, y1 = self.processor.denormalize_coordinates(
-                    section['rect'], orig_width, orig_height, scale_x, scale_y
-                )
-                denormalized_section = section.copy()
-                denormalized_section['rect'] = [x0, y0, x1, y1]
-                denormalized_sections.append(denormalized_section)
-            except Exception as e:
-                log.warning(f"Failed to denormalize section: {e}")
+        denormalized_sections = [
+            {**section, 'rect': list(self.processor.denormalize_coordinates(
+                section['rect'], orig_width, orig_height, scale_x, scale_y
+            ))}
+            for section in sections
+        ]
 
         # Get original page image for cropping
         pix = page.get_pixmap(matrix=pymupdf.Matrix(1, 1), colorspace=pymupdf.csRGB)
@@ -120,7 +103,6 @@ class LayoutTextExtractor:
             page_image, denormalized_sections, page_num
         )
 
-        # Create visualization
         self._create_visualization(page_image, denormalized_sections, page_num)
 
         return {
@@ -132,34 +114,23 @@ class LayoutTextExtractor:
 
     def _create_visualization(self, page_image: Image.Image, sections: list, page_num: int):
         """Create and save visualization for a page"""
-        try:
-            output_path = os.path.join(self.output_dir, f"page_{page_num + 1}_sections.png")
-            self.visualizer.save_visualization(
-                page_image, sections, output_path, show_labels=True, show_fill=False
-            )
-            log.info(f"Saved visualization: {output_path}")
-        except Exception as e:
-            log.error(f"Failed to create visualization for page {page_num}: {e}")
+        output_path = os.path.join(self.output_dir, f"page_{page_num + 1}_sections.png")
+        self.visualizer.save_visualization(page_image, sections, output_path, show_labels=True, show_fill=False)
+        log.info(f"Saved visualization: {output_path}")
 
     def _save_json_results(self, results: list):
         """Save all results to JSON file"""
-        try:
-            output_path = os.path.join(self.output_dir, "sections.json")
-            with open(output_path, 'w', encoding='utf-8') as f:
-                json.dump(results, f, indent=2, ensure_ascii=False)
-            log.info(f"Saved JSON results to {output_path}")
-        except Exception as e:
-            log.error(f"Failed to save JSON results: {e}")
+        output_path = os.path.join(self.output_dir, "sections.json")
+        with open(output_path, 'w', encoding='utf-8') as f:
+            json.dump(results, f, indent=2, ensure_ascii=False)
+        log.info(f"Saved JSON results to {output_path}")
 
     def _save_text_results(self, text_parts: list):
         """Save extracted text to .txt file"""
-        try:
-            output_path = os.path.join(self.output_dir, "extracted_text.txt")
-            with open(output_path, 'w', encoding='utf-8') as f:
-                f.write('\n'.join(text_parts))
-            log.info(f"Saved extracted text to {output_path}")
-        except Exception as e:
-            log.error(f"Failed to save text results: {e}")
+        output_path = os.path.join(self.output_dir, "extracted_text.txt")
+        with open(output_path, 'w', encoding='utf-8') as f:
+            f.write('\n'.join(text_parts))
+        log.info(f"Saved extracted text to {output_path}")
 
     def _generate_summary(self, results: list) -> dict:
         """Generate summary statistics"""
@@ -170,9 +141,7 @@ class LayoutTextExtractor:
             for section in result.get('sections', []):
                 section_type = section.get('section_type', 'unknown')
                 section_types[section_type] = section_types.get(section_type, 0) + 1
-
-                text = section.get('text', '')
-                total_chars += len(text)
+                total_chars += len(section.get('text', ''))
 
         return {
             "total_sections": sum(r.get('num_sections', 0) for r in results),
@@ -185,10 +154,8 @@ class LayoutTextExtractor:
 
 def main():
     """Main entry point"""
-    # Get PDF path from command line or use default
     pdf_path = sys.argv[1] if len(sys.argv) > 1 else DEFAULT_PDF
 
-    # Convert relative paths to absolute (relative to this script)
     if not os.path.isabs(pdf_path):
         script_dir = os.path.dirname(os.path.abspath(__file__))
         pdf_path = os.path.join(script_dir, pdf_path)
