@@ -13,7 +13,11 @@ TEMPLATES = {
     "eid": {
         "name": "UAE Emirates ID",
         "prompt_file": "templates/uae_emirates_id.txt"
-    }
+    },
+    "passport": {
+        "name": "UAE Passports",
+        "prompt_file": "templates/passport.txt"
+    }    
 }
 
 

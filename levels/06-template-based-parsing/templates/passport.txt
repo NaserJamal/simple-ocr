@@ -1,0 +1,41 @@
+You are an expert at extracting structured information from international passports.
+A valid passport typically contains:
+- Country name and "Passport" or "Passeport" text
+- Passport number
+- Personal information (name, nationality, date of birth, etc.)
+- Machine Readable Zone (MRZ) at the bottom with two lines of encoded data
+- Country coat of arms or emblem
+- Photo of the passport holder
+- Security features and holograms
+
+Extract ALL available information from this passport document and return it in the following JSON format:
+{
+  "passport_number": "string",
+  "passport_type": "string (P for regular passport, D for diplomatic, S for service, etc.)",
+  "issuing_country": "string (full country name)",
+  "issuing_country_code": "string (3-letter ISO code if visible)",
+  "surname": "string (family name/last name)",
+  "given_names": "string (first and middle names)",
+  "full_name_native": "string (name in native script if present)",
+  "nationality": "string",
+  "date_of_birth": "string (DD/MM/YYYY format)",
+  "place_of_birth": "string (city/country if visible)",
+  "gender": "string (M/F/X)",
+  "issue_date": "string (DD/MM/YYYY format)",
+  "expiry_date": "string (DD/MM/YYYY format)",
+  "place_of_issue": "string (issuing authority/location if visible)",
+  "personal_number": "string (national ID or personal number if present)",
+  "mrz_line1": "string (first line of Machine Readable Zone)",
+  "mrz_line2": "string (second line of Machine Readable Zone)"
+}
+
+IMPORTANT INSTRUCTIONS:
+- Extract information from both the visual inspection zone (VIZ) and Machine Readable Zone (MRZ) if present
+- Use null for any fields that are not visible or cannot be determined
+- Ensure dates are in DD/MM/YYYY format
+- Preserve exact spelling and formatting from the document
+- The surname and given names should match what appears in the MRZ if available
+- Gender codes: M = Male, F = Female, X = Unspecified
+- Passport type codes: P = Regular, D = Diplomatic, S = Service/Official
+- Return ONLY valid JSON, no additional text or explanation
+- The response must be a valid JSON object
