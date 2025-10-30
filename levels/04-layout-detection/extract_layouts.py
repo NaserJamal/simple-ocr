@@ -16,6 +16,9 @@ from config import OUTPUT_DIR
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 log = logging.getLogger(__name__)
 
+# Default PDF to process (relative to this script's directory)
+DEFAULT_PDF = "../../PDF/cv-example.pdf"
+
 
 class LayoutExtractor:
     """Extracts layouts from PDF documents"""
@@ -120,9 +123,13 @@ class LayoutExtractor:
 
 def main():
     """Main entry point"""
-    pdf_path = sys.argv[1] if len(sys.argv) > 1 else "../../PDF/cv-example.pdf"
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    pdf_path = os.path.join(script_dir, pdf_path)
+    # Get PDF path from command line or use default
+    pdf_path = sys.argv[1] if len(sys.argv) > 1 else DEFAULT_PDF
+
+    # Convert relative paths to absolute (relative to this script)
+    if not os.path.isabs(pdf_path):
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        pdf_path = os.path.join(script_dir, pdf_path)
 
     if not os.path.exists(pdf_path):
         log.error(f"PDF file not found: {pdf_path}")
