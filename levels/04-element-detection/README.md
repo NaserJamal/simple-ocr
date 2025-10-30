@@ -1,26 +1,26 @@
-# Layout Detection System
+# Element Detection System
 
-A robust, modular system for detecting document layouts using Vision Language Models (VLMs). This system analyzes PDF pages and identifies different layout regions (paragraphs, tables, headings, images, etc.) with precise bounding boxes.
+A robust, modular system for detecting document elements using Vision Language Models (VLMs). This system analyzes PDF pages and identifies different element regions (paragraphs, tables, headings, images, etc.) with precise bounding boxes.
 
 ## Architecture
 
 The system follows a clean separation of concerns with the following modules:
 
 ```
-levels/04-layout-detection/
+levels/04-element-detection/
 ├── config.py                      # Configuration constants
 ├── image_processor.py             # PDF to image conversion with resizing
-├── layout_detector.py             # VLM-based layout detection
-├── visualizer.py                  # Visualization of detected layouts
-├── extract_layouts.py             # Main orchestration script
-└── layout_detection_prompt.txt    # System prompt for VLM
+├── element_detector.py            # VLM-based element detection
+├── visualizer.py                  # Visualization of detected elements
+├── extract_elements.py            # Main orchestration script
+└── element_detection_prompt.txt   # System prompt for VLM
 ```
 
 ### Module Responsibilities
 
 #### `config.py`
 - Central configuration for all constants
-- Color mappings for different layout types
+- Color mappings for different element types
 - API settings and file paths
 
 #### `image_processor.py`
@@ -32,31 +32,30 @@ levels/04-layout-detection/
   - Resizes to fit target size while maintaining aspect ratio
   - Places on square canvas to prevent VLM preprocessing distortion
 
-#### `layout_detector.py`
+#### `element_detector.py`
 - Manages communication with OpenAI-compatible VLM API
-- Sends images for layout analysis
+- Sends images for element analysis
 - Parses and validates VLM responses
 - Handles JSON extraction from markdown-formatted responses
 
 #### `visualizer.py`
-- Creates annotated images showing detected layouts
+- Creates annotated images showing detected elements
 - Draws bounding boxes with type-specific colors
-- Adds labels with confidence levels
-- Generates color legend for layout types
+- Adds labels for each element
 
-#### `extract_layouts.py`
+#### `extract_elements.py`
 - Main entry point for the system
 - Orchestrates the complete pipeline:
   1. Load PDF
   2. Process each page
-  3. Detect layouts
+  3. Detect elements
   4. Create visualizations
   5. Save results
 - Generates summary statistics
 
-## Layout Types Detected
+## Element Types Detected
 
-The system can detect 14 different layout types:
+The system can detect 14 different element types:
 
 - **paragraph**: Regular text paragraphs and body content
 - **heading**: Titles, section headers, and headings
@@ -93,43 +92,43 @@ OCR_MODEL_NAME=your_model_name
 
 Basic usage (uses default PDF):
 ```bash
-python extract_layouts.py
+python extract_elements.py
 ```
 
 Specify a custom PDF:
 ```bash
-python extract_layouts.py /path/to/your/document.pdf
+python extract_elements.py /path/to/your/document.pdf
 ```
 
 ### Output
 
 The system creates an `output/` directory containing:
 
-1. **Visualizations**: `page_N_layout.png` for each page
+1. **Visualizations**: `page_N_elements.png` for each page
    - Annotated images with colored bounding boxes
-   - Labels showing layout type and index
+   - Labels showing element type and index
 
-2. **JSON Results**: `layouts.json`
-   - Complete layout data for all pages
-   - Includes coordinates and layout types
+2. **JSON Results**: `elements.json`
+   - Complete element data for all pages
+   - Includes coordinates and element types
 
 3. **Summary Statistics**: Printed to console
-   - Total layouts detected
-   - Breakdown by layout type
+   - Total elements detected
+   - Breakdown by element type
    - Success/failure counts
 
 ## Example Output
 
 ```
 ============================================================
-LAYOUT DETECTION COMPLETE
+ELEMENT DETECTION COMPLETE
 ============================================================
 Pages processed: 3
-Total layouts detected: 47
+Total elements detected: 47
 Successful pages: 3
 Failed pages: 0
 
-Layout types detected:
+Element types detected:
   - heading: 5
   - paragraph: 28
   - table: 8
@@ -144,12 +143,12 @@ Results saved to: output/
 
 ### Why the Resizing Mechanism?
 
-The image preprocessing approach (from `form_fields.py`) was preserved because:
+The image preprocessing approach was designed because:
 
 1. **Prevents VLM preprocessing**: By providing a fixed-size square canvas, we avoid unpredictable resizing by the VLM
 2. **Maintains aspect ratio**: Original document proportions are preserved
 3. **Predictable coordinates**: Makes coordinate transformation more reliable
-4. **Improved accuracy**: Reduces distortion that could affect layout detection
+4. **Improved accuracy**: Reduces distortion that could affect element detection
 
 ### Coordinate System
 
@@ -178,16 +177,29 @@ The system is intentionally broken into focused modules:
 - Continues processing even if individual pages fail
 - Logs detailed error information for debugging
 
-## Future Enhancements
+## Integration Example
 
-Potential improvements for this system:
+Using the system programmatically:
 
-1. **Region Extraction**: Add functionality to crop and save individual layout regions
-2. **Batch Processing**: Process multiple PDFs in parallel
-3. **Custom Prompts**: Allow runtime prompt customization
-4. **Confidence Filtering**: Filter out low-confidence detections
-5. **Region OCR**: Automatically run OCR on text regions
-6. **Interactive Viewer**: Web-based UI for viewing results
+```python
+from extract_elements import ElementExtractor
+
+# Create extractor
+extractor = ElementExtractor("path/to/document.pdf", output_dir="results")
+
+# Process document
+result = extractor.process_document()
+
+# Access results
+for page_result in result['results']:
+    page_num = page_result['page']
+    elements = page_result['elements']
+
+    for element in elements:
+        element_type = element['layout_type']
+        x0, y0, x1, y1 = element['rect']
+        print(f"Page {page_num}: {element_type} at [{x0}, {y0}, {x1}, {y1}]")
+```
 
 ## Troubleshooting
 
@@ -205,33 +217,8 @@ Enable debug logging:
 logging.basicConfig(level=logging.DEBUG)
 ```
 
-## Integration Example
-
-Using the system programmatically:
-
-```python
-from extract_layouts import LayoutExtractor
-
-# Create extractor
-extractor = LayoutExtractor("path/to/document.pdf", output_dir="results")
-
-# Process document
-result = extractor.process_document()
-
-# Access results
-for page_result in result['results']:
-    page_num = page_result['page']
-    layouts = page_result['layouts']
-
-    for layout in layouts:
-        layout_type = layout['layout_type']
-        x0, y0, x1, y1 = layout['rect']
-        print(f"Page {page_num}: {layout_type} at [{x0}, {y0}, {x1}, {y1}]")
-```
-
 ## References
 
 - Based on hybrid OCR approach from `levels/02-hybrid-vlm-ocr/`
-- Inspired by field detection system in original `form_fields.py`
 - Uses PyMuPDF for PDF processing: https://pymupdf.readthedocs.io/
 - Uses PIL/Pillow for image manipulation: https://pillow.readthedocs.io/

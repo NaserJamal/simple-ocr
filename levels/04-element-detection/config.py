@@ -1,5 +1,5 @@
 """
-Configuration constants for layout detection system
+Configuration constants for element detection system
 """
 
 # Image preprocessing
@@ -12,8 +12,8 @@ VIZ_LINE_WIDTH = 2  # Width of bounding box lines
 VIZ_FONT_SIZE = 10  # Font size for labels
 VIZ_ALPHA = 0.3     # Transparency for filled regions
 
-# Color mapping for different layout types (RGB)
-LAYOUT_COLORS = {
+# Color mapping for different element types (RGB)
+ELEMENT_COLORS = {
     'paragraph': (0, 0, 200),        # Blue
     'heading': (200, 0, 0),          # Red
     'table': (0, 150, 0),            # Dark Green
@@ -37,4 +37,4 @@ API_TEMPERATURE = 0.1
 
 # File paths
 OUTPUT_DIR = "output"
-PROMPT_FILE = "layout_detection_prompt.txt"
+PROMPT_FILE = "element_detection_prompt.txt"

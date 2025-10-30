@@ -1,19 +1,19 @@
 """
-Visualization module for layout detection results
-Creates annotated images showing detected layout regions
+Visualization module for element detection results
+Creates annotated images showing detected element regions
 """
 
 import logging
 from typing import List, Dict
 from PIL import Image, ImageDraw, ImageFont
 
-from config import LAYOUT_COLORS, VIZ_LINE_WIDTH, VIZ_FONT_SIZE, VIZ_ALPHA
+from config import ELEMENT_COLORS, VIZ_LINE_WIDTH, VIZ_FONT_SIZE, VIZ_ALPHA
 
 log = logging.getLogger(__name__)
 
 
-class LayoutVisualizer:
-    """Visualizes detected layout regions on document images"""
+class ElementVisualizer:
+    """Visualizes detected element regions on document images"""
 
     def __init__(self, line_width: int = VIZ_LINE_WIDTH, font_size: int = VIZ_FONT_SIZE, alpha: float = VIZ_ALPHA):
         self.line_width = line_width
@@ -35,30 +35,30 @@ class LayoutVisualizer:
                 log.warning("Could not load TrueType font, using default")
                 return ImageFont.load_default()
 
-    def visualize_layouts(self, image: Image.Image, layouts: List[Dict], show_labels: bool = True, show_fill: bool = False) -> Image.Image:
-        """Draw layout regions on image"""
+    def visualize_elements(self, image: Image.Image, elements: List[Dict], show_labels: bool = True, show_fill: bool = False) -> Image.Image:
+        """Draw element regions on image"""
         annotated = image.copy()
         draw = ImageDraw.Draw(annotated, 'RGBA' if show_fill else 'RGB')
 
-        log.info(f"Visualizing {len(layouts)} layout regions")
+        log.info(f"Visualizing {len(elements)} element regions")
 
-        for idx, layout in enumerate(layouts):
+        for idx, element in enumerate(elements):
             try:
-                self._draw_layout(draw, layout, idx, show_labels, show_fill)
+                self._draw_element(draw, element, idx, show_labels, show_fill)
             except Exception as e:
-                log.warning(f"Failed to draw layout {idx}: {e}")
+                log.warning(f"Failed to draw element {idx}: {e}")
 
         return annotated
 
-    def _draw_layout(self, draw: ImageDraw.ImageDraw, layout: Dict, idx: int, show_labels: bool, show_fill: bool):
-        """Draw a single layout region"""
-        rect = layout.get('rect')
+    def _draw_element(self, draw: ImageDraw.ImageDraw, element: Dict, idx: int, show_labels: bool, show_fill: bool):
+        """Draw a single element region"""
+        rect = element.get('rect')
         if not rect or len(rect) != 4:
             return
 
         x0, y0, x1, y1 = [float(v) for v in rect]
-        layout_type = layout.get('layout_type', 'default')
-        color = LAYOUT_COLORS.get(layout_type, LAYOUT_COLORS['default'])
+        element_type = element.get('layout_type', 'default')
+        color = ELEMENT_COLORS.get(element_type, ELEMENT_COLORS['default'])
 
         if show_fill:
             draw.rectangle([x0, y0, x1, y1], fill=color + (int(255 * self.alpha),), outline=None)
@@ -66,7 +66,7 @@ class LayoutVisualizer:
         draw.rectangle([x0, y0, x1, y1], outline=color, width=self.line_width)
 
         if show_labels:
-            self._draw_label(draw, f"{idx}: {layout_type}", x0, y0, color)
+            self._draw_label(draw, f"{idx}: {element_type}", x0, y0, color)
 
     def _draw_label(self, draw: ImageDraw.ImageDraw, label: str, x: float, y: float, color: tuple):
         """Draw a text label with background"""
@@ -87,10 +87,10 @@ class LayoutVisualizer:
         )
         draw.text((label_x, label_y), label, fill=color, font=self.font)
 
-    def save_visualization(self, image: Image.Image, layouts: List[Dict], output_path: str, show_labels: bool = True, show_fill: bool = False):
+    def save_visualization(self, image: Image.Image, elements: List[Dict], output_path: str, show_labels: bool = True, show_fill: bool = False):
         """Create and save visualization to file"""
         try:
-            annotated = self.visualize_layouts(image, layouts, show_labels, show_fill)
+            annotated = self.visualize_elements(image, elements, show_labels, show_fill)
             annotated.save(output_path, "PNG")
             log.info(f"Saved visualization to {output_path}")
         except Exception as e:

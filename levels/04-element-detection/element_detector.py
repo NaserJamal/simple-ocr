@@ -1,6 +1,6 @@
 """
-Layout detection module using VLM
-Handles communication with OpenAI-compatible API for layout analysis
+Element detection module using VLM
+Handles communication with OpenAI-compatible API for element analysis
 """
 
 import json
@@ -18,16 +18,11 @@ log = logging.getLogger(__name__)
 load_dotenv("../../.env")
 
 
-class LayoutDetector:
-    """Detects document layouts using Vision Language Model"""
+class ElementDetector:
+    """Detects document elements using Vision Language Model"""
 
     def __init__(self, prompt_file: str = PROMPT_FILE):
-        """
-        Initialize layout detector with API client
-
-        Args:
-            prompt_file: Path to the system prompt file
-        """
+        """Initialize element detector with API client"""
         self.client = self._initialize_client()
         self.system_prompt = self._load_prompt(prompt_file)
         self.model_name = os.getenv("OCR_MODEL_NAME")
@@ -60,18 +55,18 @@ class LayoutDetector:
             log.error(f"Failed to load prompt file: {e}")
             raise
 
-    def detect_layouts(self, img_base64: str, page_num: int) -> List[Dict]:
-        """Detect layout regions in a document image"""
+    def detect_elements(self, img_base64: str, page_num: int) -> List[Dict]:
+        """Detect element regions in a document image"""
         try:
             user_prompt = (
-                f"Please analyze this document image (page {page_num + 1}) and detect all layout regions. "
+                f"Please analyze this document image (page {page_num + 1}) and detect all element regions. "
                 f"The image is {TARGET_SIZE}x{TARGET_SIZE} pixels (square canvas with document at top-left). "
                 "Return rectangles in IMAGE PIXELS with origin at the top-left as [x0, y0, x1, y1]. "
                 "Ensure x0 < x1 and y0 < y1 and keep values within the image bounds. "
                 "Return ONLY the JSON array with no markdown formatting."
             )
 
-            log.info(f"Sending page {page_num} to VLM for layout detection")
+            log.info(f"Sending page {page_num} to VLM for element detection")
 
             response = self.client.chat.completions.create(
                 model=self.model_name,
@@ -98,18 +93,17 @@ class LayoutDetector:
             response_text = response.choices[0].message.content or ""
             log.info(f"Received response for page {page_num}: {len(response_text)} chars")
 
-            # Parse the response
-            layouts = self._parse_response(response_text, page_num)
-            log.info(f"Detected {len(layouts)} layout regions on page {page_num}")
+            elements = self._parse_response(response_text, page_num)
+            log.info(f"Detected {len(elements)} element regions on page {page_num}")
 
-            return layouts
+            return elements
 
         except Exception as e:
-            log.error(f"Failed to detect layouts for page {page_num}: {e}")
+            log.error(f"Failed to detect elements for page {page_num}: {e}")
             return []
 
     def _parse_response(self, response_text: str, page_num: int) -> List[Dict]:
-        """Parse VLM response into structured layout data"""
+        """Parse VLM response into structured element data"""
         try:
             cleaned = response_text.strip()
 
@@ -129,13 +123,13 @@ class LayoutDetector:
                 if start != -1 and end != -1 and end > start:
                     cleaned = cleaned[start:end + 1]
 
-            layouts = json.loads(cleaned)
+            elements = json.loads(cleaned)
 
-            if not isinstance(layouts, list):
+            if not isinstance(elements, list):
                 log.error(f"Response is not a list for page {page_num}")
                 return []
 
-            return [layout for layout in layouts if self._validate_layout(layout, page_num)]
+            return [element for element in elements if self._validate_element(element, page_num)]
 
         except json.JSONDecodeError as e:
             log.error(f"Failed to parse JSON for page {page_num}: {e}")
@@ -145,13 +139,13 @@ class LayoutDetector:
             log.error(f"Failed to parse response for page {page_num}: {e}")
             return []
 
-    def _validate_layout(self, layout: Dict, page_num: int) -> bool:
-        """Validate layout dictionary has required fields and valid values"""
+    def _validate_element(self, element: Dict, page_num: int) -> bool:
+        """Validate element dictionary has required fields and valid values"""
         try:
-            if not all(key in layout for key in ['layout_type', 'rect']):
+            if not all(key in element for key in ['layout_type', 'rect']):
                 return False
 
-            rect = layout['rect']
+            rect = element['rect']
             if not isinstance(rect, list) or len(rect) != 4:
                 return False
 
@@ -162,8 +156,8 @@ class LayoutDetector:
 
             # Clamp to bounds
             if x0 < 0 or y0 < 0 or x1 > TARGET_SIZE or y1 > TARGET_SIZE:
-                log.warning(f"Page {page_num}: Clamping out-of-bounds rect for {layout['layout_type']}")
-                layout['rect'] = [
+                log.warning(f"Page {page_num}: Clamping out-of-bounds rect for {element['layout_type']}")
+                element['rect'] = [
                     max(0, min(TARGET_SIZE, x0)),
                     max(0, min(TARGET_SIZE, y0)),
                     max(0, min(TARGET_SIZE, x1)),
@@ -173,5 +167,5 @@ class LayoutDetector:
             return True
 
         except (TypeError, ValueError, KeyError) as e:
-            log.warning(f"Layout validation error: {e}")
+            log.warning(f"Element validation error: {e}")
             return False
