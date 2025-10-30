@@ -1,4 +1,4 @@
-# Specific Location Text Extraction System
+# Specific Section Text Extraction System
 
 A robust, modular system for extracting text from specific sections of documents using Vision Language Models (VLMs). This system allows users to specify in natural language what section they want to extract (e.g., "extract the notes section"), or extract all major sections when no specific request is provided.
 
@@ -6,7 +6,7 @@ A robust, modular system for extracting text from specific sections of documents
 
 This system provides flexible text extraction with two modes:
 
-### Specific Section Mode (New!)
+### Specific Section Mode
 When you provide a natural language description of what you want:
 1. Identifies **only the requested section** using VLM understanding
 2. Crops that specific section as a separate image
@@ -33,7 +33,7 @@ This approach is ideal for documents like CVs, reports, forms, medical records, 
 The system follows a clean separation of concerns with the following modules:
 
 ```
-levels/07-specific-location/
+levels/07-specific-section/
 ├── main.py                        # Main entry point
 ├── utils/
 │   ├── __init__.py

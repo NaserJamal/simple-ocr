@@ -106,6 +106,19 @@ By completing these levels, you'll understand:
 
 ---
 
+### [Level 07: Specific Location Extraction](levels/07-specific-section/)
+**Learn:** Extract text from specific sections using natural language requests
+
+- Natural language section targeting (e.g., "extract the notes section")
+- Flexible section detection for general or specific extractions
+- Interactive user interface with cached section support
+- Parallel text extraction from multiple sections
+
+**Time:** 30 minutes
+**Cost:** ~$0.03-0.08 per page
+
+---
+
 ### [Level 08: Markdown Reconstruction](levels/08-markdown-reconstruction/)
 **Learn:** Converting PDFs to well-formatted, editable markdown documents
 
@@ -142,7 +155,7 @@ pip install -r requirements.txt
 3. **Start with Level 01**
 ```bash
 cd levels/01-basic-text-extraction
-python extract.py
+python main.py
 ```
 
 4. **Check the output**
@@ -161,46 +174,48 @@ cat output/output.txt
 ```
 simple-ocr/
 ├── README.md                          # You are here
+├── requirements.txt                   # All dependencies (install once)
 ├── .env.example                       # API configuration template
 ├── PDF/                               # Sample PDF files
 │   └── 1-page-text-img.pdf
 └── levels/                            # Tutorial progression
     ├── 01-basic-text-extraction/      # PyMuPDF fundamentals
     │   ├── README.md
-    │   ├── extract.py
-    │   ├── requirements.txt
+    │   ├── main.py
     │   └── output/
     ├── 02-hybrid-vlm-ocr/             # VLM integration
     │   ├── README.md
-    │   ├── extract.py
-    │   ├── requirements.txt
+    │   ├── main.py
     │   └── output/
     ├── 03-smart-quality-detection/    # Quality assessment
     │   ├── README.md
-    │   ├── extract.py
-    │   ├── requirements.txt
+    │   ├── main.py
     │   └── output/
     ├── 04-element-detection/          # Element detection
     │   ├── README.md
-    │   ├── extract_elements.py
-    │   ├── requirements.txt
+    │   ├── main.py
+    │   ├── utils/
     │   └── output/
     ├── 05-layout-detection/           # Section-based extraction
     │   ├── README.md
-    │   ├── extract_text.py
-    │   ├── requirements.txt
+    │   ├── main.py
+    │   ├── utils/
     │   └── output/
     ├── 06-template-based-parsing/     # Template parsing
     │   ├── README.md
-    │   ├── extract.py
+    │   ├── main.py
     │   ├── templates/
-    │   ├── requirements.txt
+    │   ├── utils/
+    │   └── output/
+    ├── 07-specific-section/           # Specific section extraction
+    │   ├── README.md
+    │   ├── main.py
+    │   ├── utils/
     │   └── output/
     └── 08-markdown-reconstruction/    # Markdown reconstruction
         ├── README.md
-        ├── extract_markdown.py
-        ├── markdown_reconstructor.py
-        ├── requirements.txt
+        ├── main.py
+        ├── utils/
         └── output/
 ```
 
@@ -304,12 +319,12 @@ Each enhancement builds on the foundation you're learning in these tutorials.
 
 **Import errors:**
 ```bash
-# Make sure you're in the level directory and installed dependencies
-cd levels/01-basic-text-extraction
+# Make sure you've installed dependencies from the root directory
+cd simple-ocr
 pip install -r requirements.txt
 ```
 
-**API errors (Level 02):**
+**API errors (Level 02+):**
 - Verify `.env` exists at project root
 - Check API key is valid
 - Ensure you have API credits
