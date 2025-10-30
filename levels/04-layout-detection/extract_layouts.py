@@ -203,7 +203,7 @@ class LayoutExtractor:
 def main():
     """Main entry point"""
     # Default PDF path (relative to this script)
-    default_pdf = "../../PDF/application-form.pdf"
+    default_pdf = "../../PDF/cv-example.pdf"
 
     # Allow PDF path as command line argument
     if len(sys.argv) > 1:
