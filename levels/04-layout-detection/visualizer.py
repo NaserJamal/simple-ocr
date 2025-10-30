@@ -123,12 +123,7 @@ class LayoutVisualizer:
     def _create_label(self, layout: Dict, idx: int) -> str:
         """Create label text for a layout region"""
         layout_type = layout.get('layout_type', 'unknown')
-        confidence = layout.get('confidence', '')
-
-        if confidence:
-            return f"{idx}: {layout_type} ({confidence})"
-        else:
-            return f"{idx}: {layout_type}"
+        return f"{idx}: {layout_type}"
 
     def _draw_label(
         self,

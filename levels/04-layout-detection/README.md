@@ -107,11 +107,11 @@ The system creates an `output/` directory containing:
 
 1. **Visualizations**: `page_N_layout.png` for each page
    - Annotated images with colored bounding boxes
-   - Labels showing layout type and confidence
+   - Labels showing layout type and index
 
 2. **JSON Results**: `layouts.json`
    - Complete layout data for all pages
-   - Includes coordinates, types, confidence, and descriptions
+   - Includes coordinates and layout types
 
 3. **Summary Statistics**: Printed to console
    - Total layouts detected
@@ -226,8 +226,7 @@ for page_result in result['results']:
     for layout in layouts:
         layout_type = layout['layout_type']
         x0, y0, x1, y1 = layout['rect']
-        confidence = layout['confidence']
-        print(f"Page {page_num}: {layout_type} at [{x0}, {y0}, {x1}, {y1}] ({confidence})")
+        print(f"Page {page_num}: {layout_type} at [{x0}, {y0}, {x1}, {y1}]")
 ```
 
 ## References

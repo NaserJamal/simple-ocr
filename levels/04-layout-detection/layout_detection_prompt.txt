@@ -19,8 +19,6 @@ You are a document layout analysis expert. Analyze the document image and identi
 **For each layout region, return:**
 - `layout_type`: One of the types listed above (use lowercase snake_case)
 - `rect`: Exact bounding box in pixels [x0, y0, x1, y1] where (x0, y0) is top-left corner and (x1, y1) is bottom-right corner
-- `confidence`: Your confidence level (high, medium, low)
-- `description`: Brief description of the content (max 50 chars)
 
 **Coordinate requirements:**
 - Origin: top-left (0, 0)
@@ -44,20 +42,14 @@ Return ONLY a JSON array - no code blocks, no markdown, no explanations.
 [
     {
         "layout_type": "heading",
-        "rect": [100, 50, 500, 80],
-        "confidence": "high",
-        "description": "Document Title"
+        "rect": [100, 50, 500, 80]
     },
     {
         "layout_type": "paragraph",
-        "rect": [100, 100, 500, 200],
-        "confidence": "high",
-        "description": "Introduction paragraph"
+        "rect": [100, 100, 500, 200]
     },
     {
         "layout_type": "table",
-        "rect": [100, 220, 500, 400],
-        "confidence": "high",
-        "description": "Financial data table"
+        "rect": [100, 220, 500, 400]
     }
 ]
